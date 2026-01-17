@@ -94,12 +94,24 @@ fi
 
 # Download Debian template if not exists
 header "Checking Container Template"
-TEMPLATE="debian-12-standard_12.7-1_amd64.tar.zst"
+
+msg "Updating template list..."
+pveam update
+
+# Find the latest Debian 12 template
+TEMPLATE=$(pveam available --section system | grep "debian-12-standard" | tail -1 | awk '{print $2}')
+
+if [ -z "$TEMPLATE" ]; then
+    error "Could not find Debian 12 template. Available templates:"
+    pveam available --section system
+    exit 1
+fi
+
+msg "Using template: $TEMPLATE"
 TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
 
 if [ ! -f "$TEMPLATE_PATH" ]; then
-    msg "Downloading Debian 12 template..."
-    pveam update
+    msg "Downloading $TEMPLATE..."
     pveam download $TEMPLATE_STORAGE $TEMPLATE
 else
     msg "Template already exists"
