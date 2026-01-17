@@ -98,30 +98,45 @@ header "Checking Container Template"
 msg "Updating template list..."
 pveam update
 
-# Find the latest Debian 12 template
-TEMPLATE=$(pveam available --section system | grep "debian-12-standard" | tail -1 | awk '{print $2}')
+# Check for existing local templates first
+msg "Checking for existing templates..."
+EXISTING=$(pveam list $TEMPLATE_STORAGE 2>/dev/null | grep "debian-12" | head -1 | awk '{print $1}')
 
-if [ -z "$TEMPLATE" ]; then
-    error "Could not find Debian 12 template. Available templates:"
-    pveam available --section system
-    exit 1
-fi
-
-msg "Using template: $TEMPLATE"
-TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
-
-if [ ! -f "$TEMPLATE_PATH" ]; then
-    msg "Downloading $TEMPLATE..."
-    pveam download $TEMPLATE_STORAGE $TEMPLATE
+if [ -n "$EXISTING" ]; then
+    TEMPLATE="$EXISTING"
+    msg "Found existing template: $TEMPLATE"
 else
-    msg "Template already exists"
+    # Find available Debian 12 template
+    msg "Available Debian templates:"
+    pveam available --section system | grep -i debian
+    echo ""
+
+    TEMPLATE=$(pveam available --section system | grep -i "debian-12" | head -1 | awk '{print $2}')
+
+    if [ -z "$TEMPLATE" ]; then
+        warn "Could not auto-detect Debian 12 template."
+        echo ""
+        echo "Available system templates:"
+        pveam available --section system
+        echo ""
+        read -p "Enter template name to use: " TEMPLATE
+
+        if [ -z "$TEMPLATE" ]; then
+            error "No template specified. Exiting."
+        fi
+    fi
+
+    msg "Downloading $TEMPLATE..."
+    pveam download $TEMPLATE_STORAGE $TEMPLATE || error "Failed to download template"
+    TEMPLATE="$TEMPLATE_STORAGE:vztmpl/$TEMPLATE"
 fi
 
 # Create container
 header "Creating LXC Container"
 msg "Creating container $CTID ($HOSTNAME)..."
+msg "Using template: $TEMPLATE"
 
-pct create $CTID "$TEMPLATE_STORAGE:vztmpl/$TEMPLATE" \
+pct create $CTID "$TEMPLATE" \
     --hostname $HOSTNAME \
     --memory $MEMORY \
     --cores $CORES \
