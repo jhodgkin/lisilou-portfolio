@@ -1,0 +1,68 @@
+{
+  "site": {
+    "title": "LisiLou Photography",
+    "tagline": "Capturing life's beautiful moments",
+    "description": "Senior portraits, engagement sessions, and milestone photography",
+    "logo": "/images/logo.png",
+    "favicon": "/images/favicon.ico"
+  },
+  "photographer": {
+    "name": "LisiLou",
+    "bio": "Passionate about capturing authentic moments and creating timeless memories.",
+    "profileImage": "/images/profile.jpg"
+  },
+  "contact": {
+    "email": "hello@lisilou.com",
+    "phone": "",
+    "bookingUrl": ""
+  },
+  "social": {
+    "instagram": "lisilou.photography",
+    "facebook": "",
+    "pinterest": "",
+    "tiktok": ""
+  },
+  "immich": {
+    "baseUrl": "https://photography.lisilou.com",
+    "publicAlbumPrefix": "/s/"
+  },
+  "portfolio": {
+    "categories": [
+      {
+        "id": "seniors",
+        "name": "Senior Portraits",
+        "description": "Celebrate your milestone",
+        "coverImage": "/images/portfolio/seniors-cover.jpg",
+        "immichAlbumId": "fake-portraits"
+      },
+      {
+        "id": "engagements",
+        "name": "Engagements",
+        "description": "Love stories captured",
+        "coverImage": "/images/portfolio/engagements-cover.jpg",
+        "immichAlbumId": "fake-engagements"
+      },
+      {
+        "id": "families",
+        "name": "Families",
+        "description": "Moments that matter",
+        "coverImage": "/images/portfolio/families-cover.jpg",
+        "immichAlbumId": "family-portraits"
+      }
+    ]
+  },
+  "clientAccess": {
+    "enabled": true,
+    "title": "Client Gallery Access",
+    "description": "Enter your gallery code to view and download your photos",
+    "placeholder": "Enter your gallery code"
+  },
+  "theme": {
+    "primaryColor": "#8B7355",
+    "accentColor": "#D4C5B5",
+    "textColor": "#2C2C2C",
+    "backgroundColor": "#FDFBF9",
+    "fontDisplay": "Cormorant Garamond",
+    "fontBody": "Nunito Sans"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:photography.lisilou.com)",
+      "WebFetch(domain:immich.app)",
+      "WebFetch(domain:docs.immich.app)",
+      "WebFetch(domain:api.immich.app)"
+    ]
+  }
+}

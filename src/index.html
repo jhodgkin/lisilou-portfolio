@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="site-title">LisiLou Photography</title>
+  <meta name="description" id="site-description" content="">
+  <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Nunito+Sans:opsz,wght@6..12,300;6..12,400;6..12,500&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --color-primary: #8B7355;
+      --color-accent: #D4C5B5;
+      --color-text: #2C2C2C;
+      --color-text-light: #6B6B6B;
+      --color-bg: #FDFBF9;
+      --color-bg-warm: #F7F3EF;
+      --color-white: #FFFFFF;
+      --font-display: 'Cormorant Garamond', serif;
+      --font-body: 'Nunito Sans', sans-serif;
+      --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Elegant loading animation */
+    .page-loader {
+      position: fixed;
+      inset: 0;
+      background: var(--color-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.6s var(--transition-smooth), visibility 0.6s;
+    }
+
+    .page-loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .loader-content {
+      text-align: center;
+    }
+
+    .loader-logo {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 300;
+      letter-spacing: 0.3em;
+      color: var(--color-primary);
+      animation: fadeInUp 0.8s var(--transition-smooth);
+    }
+
+    .loader-line {
+      width: 60px;
+      height: 1px;
+      background: var(--color-primary);
+      margin: 1.5rem auto;
+      animation: expandLine 1.2s var(--transition-smooth) infinite;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes expandLine {
+      0%, 100% { transform: scaleX(0.3); opacity: 0.3; }
+      50% { transform: scaleX(1); opacity: 1; }
+    }
+
+    /* Header */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1.5rem 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.4s var(--transition-smooth), padding 0.4s var(--transition-smooth);
+    }
+
+    header.scrolled {
+      background: rgba(253, 251, 249, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 1rem 3rem;
+      box-shadow: 0 1px 0 rgba(139, 115, 85, 0.1);
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 300;
+      letter-spacing: 0.2em;
+      color: var(--color-primary);
+      text-decoration: none;
+      transition: opacity 0.3s;
+    }
+
+    .logo:hover {
+      opacity: 0.7;
+    }
+
+    nav {
+      display: flex;
+      gap: 2.5rem;
+      align-items: center;
+    }
+
+    nav a {
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 400;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-text);
+      text-decoration: none;
+      position: relative;
+      padding: 0.5rem 0;
+    }
+
+    nav a::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--color-primary);
+      transition: width 0.3s var(--transition-smooth);
+    }
+
+    nav a:hover::after {
+      width: 100%;
+    }
+
+    .nav-toggle {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+
+    .nav-toggle span {
+      width: 24px;
+      height: 1px;
+      background: var(--color-text);
+      transition: transform 0.3s, opacity 0.3s;
+    }
+
+    /* Hero Section */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--color-bg-warm) 0%, var(--color-bg) 50%, var(--color-accent) 100%);
+      opacity: 0.5;
+    }
+
+    .hero-pattern {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(139, 115, 85, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(212, 197, 181, 0.05) 0%, transparent 50%);
+    }
+
+    .hero-content {
+      position: relative;
+      text-align: center;
+      padding: 2rem;
+      max-width: 800px;
+      animation: heroFadeIn 1.2s var(--transition-smooth) 0.3s both;
+    }
+
+    @keyframes heroFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero-eyebrow {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 400;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 8vw, 6rem);
+      font-weight: 300;
+      line-height: 1.1;
+      color: var(--color-text);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title em {
+      font-style: italic;
+      color: var(--color-primary);
+    }
+
+    .hero-tagline {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 300;
+      font-style: italic;
+      color: var(--color-text-light);
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 1rem 2.5rem;
+      border: 1px solid var(--color-primary);
+      background: transparent;
+      color: var(--color-primary);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.4s var(--transition-smooth);
+    }
+
+    .btn:hover {
+      background: var(--color-primary);
+      color: var(--color-white);
+    }
+
+    .btn-filled {
+      background: var(--color-primary);
+      color: var(--color-white);
+    }
+
+    .btn-filled:hover {
+      background: transparent;
+      color: var(--color-primary);
+    }
+
+    /* Scroll indicator */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 3rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--color-text-light);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      animation: float 2s ease-in-out infinite;
+    }
+
+    .scroll-indicator svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--color-primary);
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(8px); }
+    }
+
+    /* Section styling */
+    section {
+      padding: 6rem 3rem;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .section-eyebrow {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      font-weight: 400;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 300;
+      color: var(--color-text);
+    }
+
+    /* Portfolio Grid */
+    #portfolio {
+      background: var(--color-bg-warm);
+    }
+
+    .portfolio-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .portfolio-card {
+      position: relative;
+      aspect-ratio: 4/5;
+      overflow: hidden;
+      cursor: pointer;
+      background: var(--color-accent);
+    }
+
+    .portfolio-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.8s var(--transition-smooth), opacity 0.4s var(--transition-smooth);
+    }
+
+    .portfolio-card:hover img {
+      transform: scale(1.08);
+    }
+
+    .portfolio-card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(44, 44, 44, 0.8) 0%, transparent 60%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 2rem;
+      opacity: 0;
+      transition: opacity 0.4s var(--transition-smooth);
+    }
+
+    .portfolio-card:hover .portfolio-card-overlay {
+      opacity: 1;
+    }
+
+    .portfolio-card-title {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 400;
+      color: var(--color-white);
+      margin-bottom: 0.5rem;
+    }
+
+    .portfolio-card-desc {
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.8);
+      letter-spacing: 0.1em;
+    }
+
+    /* Client Access Section */
+    #client-access {
+      background: var(--color-bg);
+    }
+
+    .client-access-container {
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .client-access-form {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .client-access-input {
+      flex: 1;
+      min-width: 250px;
+      padding: 1rem 1.5rem;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      border: 1px solid var(--color-accent);
+      background: var(--color-white);
+      color: var(--color-text);
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .client-access-input:focus {
+      border-color: var(--color-primary);
+    }
+
+    .client-access-input::placeholder {
+      color: var(--color-text-light);
+    }
+
+    /* Social Section */
+    #connect {
+      background: var(--color-bg-warm);
+    }
+
+    .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .social-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      color: var(--color-text);
+      text-decoration: none;
+      padding: 1rem 1.5rem;
+      border: 1px solid transparent;
+      transition: all 0.3s var(--transition-smooth);
+    }
+
+    .social-link:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .social-link svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+
+    /* Footer */
+    footer {
+      padding: 3rem;
+      text-align: center;
+      border-top: 1px solid var(--color-accent);
+    }
+
+    .footer-logo {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 300;
+      letter-spacing: 0.2em;
+      color: var(--color-primary);
+      margin-bottom: 1rem;
+    }
+
+    .footer-text {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      color: var(--color-text-light);
+      letter-spacing: 0.1em;
+    }
+
+    /* Mobile Navigation */
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--color-bg);
+      z-index: 99;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.4s, visibility 0.4s;
+    }
+
+    .mobile-nav.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .mobile-nav a {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 300;
+      color: var(--color-text);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .mobile-nav a:hover {
+      color: var(--color-primary);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header {
+        padding: 1rem 1.5rem;
+      }
+
+      header.scrolled {
+        padding: 0.75rem 1.5rem;
+      }
+
+      nav {
+        display: none;
+      }
+
+      .nav-toggle {
+        display: flex;
+      }
+
+      .mobile-nav {
+        display: flex;
+      }
+
+      section {
+        padding: 4rem 1.5rem;
+      }
+
+      .hero-content {
+        padding: 1rem;
+      }
+
+      .portfolio-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .client-access-form {
+        flex-direction: column;
+      }
+
+      .client-access-input {
+        min-width: auto;
+      }
+    }
+
+    /* Reveal animations */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s var(--transition-smooth), transform 0.8s var(--transition-smooth);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <!-- Page Loader -->
+  <div class="page-loader" id="loader">
+    <div class="loader-content">
+      <div class="loader-logo" id="loader-logo">LISILOU</div>
+      <div class="loader-line"></div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header id="header">
+    <a href="#" class="logo" id="header-logo">LISILOU</a>
+    <nav id="main-nav">
+      <a href="#portfolio">Portfolio</a>
+      <a href="#client-access">Client Access</a>
+      <a href="#connect">Connect</a>
+    </nav>
+    <div class="nav-toggle" id="nav-toggle">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation -->
+  <div class="mobile-nav" id="mobile-nav">
+    <a href="#portfolio" class="mobile-nav-link">Portfolio</a>
+    <a href="#client-access" class="mobile-nav-link">Client Access</a>
+    <a href="#connect" class="mobile-nav-link">Connect</a>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-pattern"></div>
+    <div class="hero-content">
+      <p class="hero-eyebrow" id="hero-eyebrow">Photography</p>
+      <h1 class="hero-title" id="hero-title">LisiLou <em>Photography</em></h1>
+      <p class="hero-tagline" id="hero-tagline">Capturing life's beautiful moments</p>
+      <div class="hero-cta">
+        <a href="#portfolio" class="btn btn-filled">View Portfolio</a>
+        <a href="#client-access" class="btn">Client Access</a>
+      </div>
+    </div>
+    <div class="scroll-indicator">
+      <span>Scroll</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 5v14M19 12l-7 7-7-7"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Portfolio Section -->
+  <section id="portfolio">
+    <div class="section-header reveal">
+      <p class="section-eyebrow">The Work</p>
+      <h2 class="section-title">Portfolio</h2>
+    </div>
+    <div class="portfolio-grid" id="portfolio-grid">
+      <!-- Portfolio items will be dynamically inserted -->
+    </div>
+  </section>
+
+  <!-- Client Access Section -->
+  <section id="client-access">
+    <div class="client-access-container reveal">
+      <div class="section-header">
+        <p class="section-eyebrow">Clients</p>
+        <h2 class="section-title" id="client-title">Gallery Access</h2>
+      </div>
+      <p id="client-description">Enter your gallery code to view and download your photos</p>
+      <form class="client-access-form" id="client-form">
+        <input type="text" class="client-access-input" id="gallery-code" placeholder="Enter your gallery code" required>
+        <button type="submit" class="btn btn-filled">View Gallery</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Connect Section -->
+  <section id="connect">
+    <div class="section-header reveal">
+      <p class="section-eyebrow">Get in Touch</p>
+      <h2 class="section-title">Let's Connect</h2>
+    </div>
+    <div class="social-links" id="social-links">
+      <!-- Social links will be dynamically inserted -->
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-logo" id="footer-logo">LISILOU</div>
+    <p class="footer-text">&copy; <span id="current-year"></span> LisiLou Photography. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // Fetch all Immich album images via proxy
+    async function getImmichAlbumImages(baseUrl, prefix, albumSlug) {
+      try {
+        // Step 1: Fetch the share page to get the share key from og:image
+        const proxyUrl = `/api/fetch-immich${prefix}${albumSlug}`;
+        const response = await fetch(proxyUrl);
+        const html = await response.text();
+
+        // Extract share key from og:image URL
+        const ogMatch = html.match(/<meta\s+property="og:image"\s+content="[^"]+\?key=([^"]+)"/);
+        if (!ogMatch || !ogMatch[1]) {
+          console.log(`Could not find share key for album: ${albumSlug}`);
+          return [];
+        }
+        const shareKey = ogMatch[1];
+
+        // Step 2: Get shared link info
+        const sharedLinkResponse = await fetch(`/api/fetch-immich/api/shared-links/me?key=${shareKey}`);
+        const sharedLinkData = await sharedLinkResponse.json();
+
+        let assets = [];
+
+        // Handle both ALBUM and INDIVIDUAL share types
+        if (sharedLinkData.type === 'ALBUM' && sharedLinkData.album?.id) {
+          // For album shares, fetch the full album to get all assets
+          const albumResponse = await fetch(`/api/fetch-immich/api/albums/${sharedLinkData.album.id}?key=${shareKey}`);
+          const albumData = await albumResponse.json();
+          assets = albumData.assets || [];
+        } else if (sharedLinkData.assets && sharedLinkData.assets.length > 0) {
+          // For individual asset shares, assets are directly in the response
+          assets = sharedLinkData.assets;
+        }
+
+        if (assets.length === 0) {
+          console.log(`No assets found in: ${albumSlug}`);
+          return [];
+        }
+
+        // Build thumbnail URLs for all assets
+        const thumbnailUrls = assets.map(asset =>
+          `${baseUrl}/api/assets/${asset.id}/thumbnail?key=${shareKey}`
+        );
+
+        return thumbnailUrls;
+      } catch (error) {
+        console.log(`Could not fetch images for album: ${albumSlug}`, error);
+      }
+      return [];
+    }
+
+    // Start carousel for a portfolio card
+    function startCarousel(cardElement, images) {
+      if (images.length <= 1) return;
+
+      let currentIndex = 0;
+      const imgElement = cardElement.querySelector('img');
+
+      setInterval(() => {
+        currentIndex = (currentIndex + 1) % images.length;
+        imgElement.style.opacity = '0';
+
+        setTimeout(() => {
+          imgElement.src = images[currentIndex];
+          imgElement.style.opacity = '1';
+        }, 400);
+      }, 4000); // Change image every 4 seconds
+    }
+
+    // Configuration loader
+    async function loadConfig() {
+      try {
+        const response = await fetch('/config/site.json');
+        const config = await response.json();
+        await applyConfig(config);
+      } catch (error) {
+        console.log('Using default configuration');
+      }
+    }
+
+    async function applyConfig(config) {
+      // Store immich config globally first (needed for thumbnail fetching)
+      window.immichConfig = config.immich || {};
+
+      // Apply theme colors
+      if (config.theme) {
+        const root = document.documentElement;
+        if (config.theme.primaryColor) root.style.setProperty('--color-primary', config.theme.primaryColor);
+        if (config.theme.accentColor) root.style.setProperty('--color-accent', config.theme.accentColor);
+        if (config.theme.textColor) root.style.setProperty('--color-text', config.theme.textColor);
+        if (config.theme.backgroundColor) root.style.setProperty('--color-bg', config.theme.backgroundColor);
+      }
+
+      // Apply site content
+      if (config.site) {
+        document.title = config.site.title || document.title;
+        const siteName = config.site.title?.replace(' Photography', '') || 'LISILOU';
+        document.getElementById('loader-logo').textContent = siteName.toUpperCase();
+        document.getElementById('header-logo').textContent = siteName.toUpperCase();
+        document.getElementById('footer-logo').textContent = siteName.toUpperCase();
+        document.getElementById('hero-title').innerHTML = `${siteName} <em>Photography</em>`;
+        if (config.site.tagline) {
+          document.getElementById('hero-tagline').textContent = config.site.tagline;
+        }
+      }
+
+      // Apply portfolio categories
+      if (config.portfolio?.categories) {
+        const grid = document.getElementById('portfolio-grid');
+        const baseUrl = window.immichConfig.baseUrl;
+        const prefix = window.immichConfig.publicAlbumPrefix || '/s/';
+
+        // First render the cards with placeholder/fallback images
+        grid.innerHTML = config.portfolio.categories.map(cat => `
+          <div class="portfolio-card reveal" data-album-id="${cat.immichAlbumId || ''}" onclick="openPortfolio('${cat.id}', '${cat.immichAlbumId || ''}')">
+            <img src="${cat.coverImage || '/images/placeholder.jpg'}" alt="${cat.name}" loading="lazy">
+            <div class="portfolio-card-overlay">
+              <h3 class="portfolio-card-title">${cat.name}</h3>
+              <p class="portfolio-card-desc">${cat.description || ''}</p>
+            </div>
+          </div>
+        `).join('');
+        observeRevealElements();
+
+        // Then fetch album images and start carousels for each category
+        config.portfolio.categories.forEach(async (cat, index) => {
+          if (cat.immichAlbumId && baseUrl) {
+            const images = await getImmichAlbumImages(baseUrl, prefix, cat.immichAlbumId);
+            if (images.length > 0) {
+              const card = grid.children[index];
+              const img = card.querySelector('img');
+
+              // Set the first image
+              img.src = images[0];
+
+              // Start the carousel if there are multiple images
+              if (images.length > 1) {
+                startCarousel(card, images);
+              }
+            }
+          }
+        });
+      }
+
+      // Apply social links
+      if (config.social) {
+        const socialContainer = document.getElementById('social-links');
+        const socialIcons = {
+          instagram: `<svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>`,
+          facebook: `<svg viewBox="0 0 24 24"><path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/></svg>`,
+          pinterest: `<svg viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.372-12 12 0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>`,
+          tiktok: `<svg viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>`
+        };
+
+        let links = '';
+        if (config.social.instagram) {
+          links += `<a href="https://instagram.com/${config.social.instagram}" target="_blank" class="social-link">${socialIcons.instagram}<span>@${config.social.instagram}</span></a>`;
+        }
+        if (config.social.facebook) {
+          links += `<a href="https://facebook.com/${config.social.facebook}" target="_blank" class="social-link">${socialIcons.facebook}<span>Facebook</span></a>`;
+        }
+        if (config.social.pinterest) {
+          links += `<a href="https://pinterest.com/${config.social.pinterest}" target="_blank" class="social-link">${socialIcons.pinterest}<span>Pinterest</span></a>`;
+        }
+        if (config.social.tiktok) {
+          links += `<a href="https://tiktok.com/@${config.social.tiktok}" target="_blank" class="social-link">${socialIcons.tiktok}<span>TikTok</span></a>`;
+        }
+        socialContainer.innerHTML = links;
+      }
+
+      // Apply client access config
+      if (config.clientAccess) {
+        if (config.clientAccess.title) {
+          document.getElementById('client-title').textContent = config.clientAccess.title;
+        }
+        if (config.clientAccess.description) {
+          document.getElementById('client-description').textContent = config.clientAccess.description;
+        }
+        if (config.clientAccess.placeholder) {
+          document.getElementById('gallery-code').placeholder = config.clientAccess.placeholder;
+        }
+      }
+    }
+
+    // Portfolio navigation
+    function openPortfolio(categoryId, albumId) {
+      if (albumId && window.immichConfig?.baseUrl) {
+        window.open(`${window.immichConfig.baseUrl}${window.immichConfig.publicAlbumPrefix || '/share/'}${albumId}`, '_blank');
+      }
+    }
+
+    // Client gallery access
+    document.getElementById('client-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const code = document.getElementById('gallery-code').value.trim();
+      if (code && window.immichConfig?.baseUrl) {
+        window.location.href = `${window.immichConfig.baseUrl}${window.immichConfig.publicAlbumPrefix || '/share/'}${code}`;
+      }
+    });
+
+    // Header scroll effect
+    window.addEventListener('scroll', function() {
+      const header = document.getElementById('header');
+      if (window.scrollY > 50) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    });
+
+    // Mobile navigation
+    const navToggle = document.getElementById('nav-toggle');
+    const mobileNav = document.getElementById('mobile-nav');
+    const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+
+    navToggle.addEventListener('click', function() {
+      mobileNav.classList.toggle('active');
+      navToggle.classList.toggle('active');
+    });
+
+    mobileNavLinks.forEach(link => {
+      link.addEventListener('click', function() {
+        mobileNav.classList.remove('active');
+        navToggle.classList.remove('active');
+      });
+    });
+
+    // Reveal animations on scroll
+    function observeRevealElements() {
+      const reveals = document.querySelectorAll('.reveal');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.1 });
+
+      reveals.forEach(el => observer.observe(el));
+    }
+
+    // Page load
+    window.addEventListener('load', function() {
+      document.getElementById('current-year').textContent = new Date().getFullYear();
+      loadConfig();
+      
+      setTimeout(() => {
+        document.getElementById('loader').classList.add('hidden');
+      }, 1000);
+
+      observeRevealElements();
+    });
+  </script>
+</body>
+</html>

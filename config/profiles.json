@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "lisilou": {
+      "enabled": true,
+      "domain": "lisilou.com",
+      "configFile": "site.json"
+    }
+  },
+  "defaultProfile": "lisilou",
+  "multiTenant": false
+}
