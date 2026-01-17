@@ -92,44 +92,33 @@ else
     NET_CONFIG="name=eth0,bridge=$BRIDGE,ip=dhcp"
 fi
 
-# Download Debian template if not exists
+# Find container template
 header "Checking Container Template"
 
-msg "Updating template list..."
-pveam update
+# Check for existing local Debian 12 template first
+msg "Checking for local templates..."
+TEMPLATE=$(pveam list local 2>/dev/null | grep "debian-12" | head -1 | awk '{print $1}')
 
-# Check for existing local templates first
-msg "Checking for existing templates..."
-EXISTING=$(pveam list $TEMPLATE_STORAGE 2>/dev/null | grep "debian-12" | head -1 | awk '{print $1}')
-
-if [ -n "$EXISTING" ]; then
-    TEMPLATE="$EXISTING"
-    msg "Found existing template: $TEMPLATE"
+if [ -n "$TEMPLATE" ]; then
+    msg "Found local template: $TEMPLATE"
 else
-    # Find available Debian 12 template
-    msg "Available Debian templates:"
-    pveam available --section system | grep -i debian
-    echo ""
+    # Need to download
+    msg "No local Debian 12 template found. Downloading..."
+    pveam update
 
-    TEMPLATE=$(pveam available --section system | grep -i "debian-12" | head -1 | awk '{print $2}')
+    # Get the template name from available list
+    TEMPLATE_NAME=$(pveam available --section system | grep "debian-12-standard" | awk '{print $2}' | head -1)
 
-    if [ -z "$TEMPLATE" ]; then
-        warn "Could not auto-detect Debian 12 template."
-        echo ""
-        echo "Available system templates:"
-        pveam available --section system
-        echo ""
-        read -p "Enter template name to use: " TEMPLATE
-
-        if [ -z "$TEMPLATE" ]; then
-            error "No template specified. Exiting."
-        fi
+    if [ -z "$TEMPLATE_NAME" ]; then
+        error "Could not find Debian 12 template to download"
     fi
 
-    msg "Downloading $TEMPLATE..."
-    pveam download $TEMPLATE_STORAGE $TEMPLATE || error "Failed to download template"
-    TEMPLATE="$TEMPLATE_STORAGE:vztmpl/$TEMPLATE"
+    msg "Downloading $TEMPLATE_NAME..."
+    pveam download local "$TEMPLATE_NAME"
+    TEMPLATE="local:vztmpl/$TEMPLATE_NAME"
 fi
+
+msg "Will use template: $TEMPLATE"
 
 # Create container
 header "Creating LXC Container"
