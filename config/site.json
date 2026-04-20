@@ -1,13 +1,13 @@
 {
   "site": {
-    "title": "LisiLou Photography",
+    "title": "Lisi Lou Photography",
     "tagline": "Capturing life's beautiful moments",
     "description": "Senior portraits, engagement sessions, and milestone photography",
     "logo": "/images/logo.png",
     "favicon": "/images/favicon.ico"
   },
   "photographer": {
-    "name": "LisiLou",
+    "name": "Elysse Hodgkin",
     "bio": "Passionate about capturing authentic moments and creating timeless memories.",
     "profileImage": "/images/profile.jpg"
   },
@@ -18,12 +18,12 @@
   },
   "social": {
     "instagram": "lisilou.photography",
-    "facebook": "",
+    "facebook": "elysse.hodgkin",
     "pinterest": "",
     "tiktok": ""
   },
   "immich": {
-    "baseUrl": "https://photography.lisilou.com",
+    "baseUrl": "https://immich.jerodrigged.com",
     "publicAlbumPrefix": "/s/"
   },
   "portfolio": {
@@ -33,21 +33,21 @@
         "name": "Senior Portraits",
         "description": "Celebrate your milestone",
         "coverImage": "/images/portfolio/seniors-cover.jpg",
-        "immichAlbumId": "fake-portraits"
+        "immichAlbumId": "all-seniors"
       },
       {
         "id": "engagements",
-        "name": "Engagements",
+        "name": "Couples",
         "description": "Love stories captured",
         "coverImage": "/images/portfolio/engagements-cover.jpg",
-        "immichAlbumId": "fake-engagements"
+        "immichAlbumId": "all-couples"
       },
       {
         "id": "families",
-        "name": "Families",
+        "name": "Family or Friends",
         "description": "Moments that matter",
         "coverImage": "/images/portfolio/families-cover.jpg",
-        "immichAlbumId": "family-portraits"
+        "immichAlbumId": "families-or-friends"
       }
     ]
   },
