@@ -1,0 +1,36 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Pull latest changes
+        run: |
+          cd /opt/lisilou-portfolio
+          git pull origin main
+      
+      - name: Build and restart containers
+        run: |
+          cd /opt/lisilou-portfolio
+          docker compose build
+          docker compose up -d
+          docker compose ps
+      
+      - name: Clean up old images
+        run: |
+          docker image prune -f
+      
+      - name: Verify deployment
+        run: |
+          sleep 5
+          curl -f http://localhost:8080/health || echo "Health check failed"
