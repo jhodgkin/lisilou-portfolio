@@ -1,68 +1,58 @@
-name: Build and Deploy
+name: Deploy to Dev
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
-env:
-  REGISTRY: your-registry.com  # Update with your registry
-  IMAGE_NAME: lisilou-portfolio
+    branches: [main]
 
 jobs:
-  build:
+  deploy:
+    name: Deploy & Smoke Test
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Install SSH client
+        run: which ssh || (apt-get update -qq && apt-get install -y -qq openssh-client)
 
-      - name: Log in to Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEV_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEV_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=10 \
+              ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} \
+              'set -e
+               cd /opt/lisilou-portfolio
+               git pull origin main
+               docker compose build
+               docker compose up -d
+               echo "Deploy complete"'
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Wait for health check
+        run: |
+          echo "Waiting for services..."
+          for i in $(seq 1 24); do
+            if curl -sf --max-time 4 "http://${{ secrets.DEV_HOST }}:8080/health" > /dev/null 2>&1; then
+              echo "Services are up (attempt $i)"
+              exit 0
+            fi
+            echo "  Attempt $i/24 — sleeping 5s"
+            sleep 5
+          done
+          echo "Health check timed out after 2 minutes"
+          exit 1
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_KEY }}
-          script: |
-            cd /opt/lisilou-portfolio
-            docker compose pull
-            docker compose up -d
-            docker image prune -f
+      - name: Smoke tests
+        run: bash scripts/smoke-test.sh "http://${{ secrets.DEV_HOST }}:8080"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
