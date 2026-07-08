@@ -33,6 +33,7 @@ app.post('/api/bookings', (req, res) => {
   const {
     client_name, client_email, client_phone, client_sub,
     session_date, session_type, session_length, location,
+    payment_status,
   } = req.body;
 
   if (!client_email || !session_date || !session_type || !session_length) {
@@ -41,11 +42,35 @@ app.post('/api/bookings', (req, res) => {
 
   const result = db.prepare(`
     INSERT INTO bookings
-      (client_name, client_email, client_phone, client_sub, session_date, session_type, session_length, location)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(client_name, client_email, client_phone, client_sub, session_date, session_type, session_length, location);
+      (client_name, client_email, client_phone, client_sub, session_date, session_type, session_length, location, payment_status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    client_name, client_email, client_phone, client_sub,
+    session_date, session_type, session_length, location,
+    payment_status || 'pending',
+  );
 
   res.status(201).json({ id: result.lastInsertRowid });
+});
+
+// Generate a QR code SVG for any URL — used by the Venmo payment step.
+// Venmo username and amount come from the frontend (which reads site.json),
+// so changing venmoUsername in config updates both the button and QR with
+// no server restart needed.
+app.get('/api/venmo-qr', async (req, res) => {
+  const { url } = req.query;
+  if (!url || !url.startsWith('https://venmo.com/')) {
+    return res.status(400).json({ error: 'url must be a venmo.com URL' });
+  }
+  try {
+    const QRCode = require('qrcode');
+    const svg = await QRCode.toString(url, { type: 'svg', margin: 2, width: 220, color: { dark: '#2C2C2C', light: '#FDFBF9' } });
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(svg);
+  } catch (err) {
+    res.status(500).json({ error: 'QR generation failed' });
+  }
 });
 
 // Stamp the signature onto the contract PDF and record it

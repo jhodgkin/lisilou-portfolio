@@ -1115,15 +1115,67 @@
       font-weight: 300;
       color: var(--color-primary);
       margin: 0.5rem 0 1.25rem;
+      text-align: center;
     }
 
     .payment-note {
       background: var(--color-bg-warm);
       border-left: 2px solid var(--color-primary);
-      padding: 1rem 1.25rem;
-      margin-bottom: 1.5rem;
-      font-size: 0.85rem;
+      padding: 0.9rem 1.25rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.8rem;
       color: var(--color-text);
+      line-height: 1.6;
+    }
+
+    .pay-summary {
+      border: 1px solid var(--color-accent);
+      margin-bottom: 1.25rem;
+    }
+
+    .pay-summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.8rem;
+      border-bottom: 1px solid var(--color-accent);
+    }
+
+    .pay-summary-row:last-child { border-bottom: none; }
+    .pay-summary-row span:first-child { color: var(--color-text-light); }
+    .pay-summary-row span:last-child { font-weight: 500; color: var(--color-text); text-align: right; max-width: 60%; }
+
+    .venmo-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 0.85rem 1.5rem;
+      background: #3D95CE;
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-family: var(--font-body);
+      letter-spacing: 0.04em;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      transition: background 0.2s;
+    }
+
+    .venmo-btn:hover { background: #2d7db0; }
+
+    .venmo-qr {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .venmo-qr svg {
+      width: 160px;
+      height: 160px;
+      border: 1px solid var(--color-accent);
+      padding: 6px;
+      background: var(--color-bg-warm);
     }
 
     /* Confirm / summary */
@@ -1353,9 +1405,9 @@
           <div class="booking-step-item" data-step="2"><div class="step-dot">2</div><span class="step-label-text">Session</span></div>
           <div class="booking-step-item" data-step="3"><div class="step-dot">3</div><span class="step-label-text">Length</span></div>
           <div class="booking-step-item" data-step="4"><div class="step-dot">4</div><span class="step-label-text">Location</span></div>
-          <div class="booking-step-item" data-step="5"><div class="step-dot">5</div><span class="step-label-text">Contract</span></div>
-          <div class="booking-step-item" data-step="6"><div class="step-dot">6</div><span class="step-label-text">Payment</span></div>
-          <div class="booking-step-item" data-step="7"><div class="step-dot">7</div><span class="step-label-text">Confirm</span></div>
+          <div class="booking-step-item" data-step="5"><div class="step-dot">5</div><span class="step-label-text">Info</span></div>
+          <div class="booking-step-item" data-step="6"><div class="step-dot">6</div><span class="step-label-text">Contract</span></div>
+          <div class="booking-step-item" data-step="7"><div class="step-dot">7</div><span class="step-label-text">Payment</span></div>
         </div>
       </div>
 
@@ -1406,17 +1458,35 @@
         </div>
 
         <!-- Step 5: Contract -->
+        <!-- Step 5: Your Info -->
         <div class="step-panel" id="step-5">
+          <h3 class="step-heading">Your Information</h3>
+          <p class="step-subheading">How should we reach you to confirm your session?</p>
+          <div class="booking-field">
+            <label class="booking-label" for="client-name">Full Name</label>
+            <input type="text" class="booking-input" id="client-name" placeholder="Your full name" autocomplete="name">
+          </div>
+          <div class="booking-field">
+            <label class="booking-label" for="client-email">Email Address</label>
+            <input type="email" class="booking-input" id="client-email" placeholder="your@email.com" autocomplete="email">
+          </div>
+          <div class="booking-field">
+            <label class="booking-label" for="client-phone">Phone Number</label>
+            <input type="tel" class="booking-input" id="client-phone" placeholder="(555) 000-0000" autocomplete="tel">
+          </div>
+          <div class="booking-error" id="info-error" style="display:none;"></div>
+        </div>
+
+        <!-- Step 6: Contract — filled by initContractStep() -->
+        <div class="step-panel" id="step-6">
           <h3 class="step-heading">Model Release &amp; Contract</h3>
           <p class="step-subheading">Read the full agreement below, then sign and type your name.</p>
 
-          <!-- PDF viewer — filled by initContractStep() -->
           <div class="contract-viewer" id="contract-viewer">
             <div class="contract-loading" id="contract-loading">Loading contract…</div>
           </div>
           <div class="contract-scroll-notice" id="contract-scroll-notice">Scroll to the bottom to enable signing ↓</div>
 
-          <!-- Signature pad — locked until scrolled -->
           <div class="sig-section locked" id="sig-section">
             <div class="booking-label" style="margin-bottom:0.4rem;">Your Signature</div>
             <div class="sig-pad-wrapper">
@@ -1432,45 +1502,50 @@
           <div class="booking-error" id="contract-error" style="display:none;"></div>
         </div>
 
-        <!-- Step 6: Payment -->
-        <div class="step-panel" id="step-6">
+        <!-- Step 7: Payment — filled by initPaymentStep() -->
+        <div class="step-panel" id="step-7">
           <h3 class="step-heading">Booking Fee</h3>
-          <p class="step-subheading">A non-refundable booking fee reserves your date.</p>
-          <div class="payment-amount" id="payment-amount">—</div>
-          <div class="payment-note">
-            Send payment via Venmo to reserve your session. Your date is not confirmed until payment is received.
+          <p class="step-subheading">Send payment via Venmo to reserve your date.</p>
+
+          <div class="pay-summary" id="pay-summary">
+            <div class="pay-summary-row"><span>Date</span><span id="pay-summary-date">—</span></div>
+            <div class="pay-summary-row"><span>Session</span><span id="pay-summary-type">—</span></div>
+            <div class="pay-summary-row"><span>Length</span><span id="pay-summary-length">—</span></div>
+            <div class="pay-summary-row"><span>Location</span><span id="pay-summary-location">—</span></div>
           </div>
-          <p style="font-size:0.82rem;color:var(--color-text-light);margin-bottom:1.5rem;">Venmo link and QR code will appear here — Issue #7</p>
+
+          <div class="payment-amount" id="payment-amount">—</div>
+
+          <a class="venmo-btn" id="venmo-link" href="#" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" style="vertical-align:middle;margin-right:0.4rem"><path d="M15.25 1C13.5 4.25 11.1 8.15 9.5 11H6.75L5 2.25l-4 .75 2.25 12.5h5.5C11.5 11.5 16.5 4.25 17 1h-1.75z"/></svg>
+            Pay on Venmo
+          </a>
+
+          <div class="venmo-qr" id="venmo-qr"></div>
+
+          <p class="payment-note">
+            Your session is reserved once we confirm receipt — usually within 24 hours.
+            No Venmo? Send the exact amount and session note via any method and check the box below.
+          </p>
+
           <label class="booking-checkbox-label">
             <input type="checkbox" id="payment-sent">
-            I have sent the booking fee payment via Venmo.
+            I've sent the booking fee
           </label>
           <div class="booking-error" id="payment-error" style="display:none;">Please confirm you've sent payment to continue.</div>
+          <div class="booking-error" id="confirm-error" style="display:none;"></div>
         </div>
 
-        <!-- Step 7: Confirm -->
-        <div class="step-panel" id="step-7">
-          <h3 class="step-heading">Almost There!</h3>
-          <p class="step-subheading">Review your details and enter your contact information.</p>
-          <div class="confirm-summary">
-            <div class="confirm-row"><span class="confirm-label">Date</span><span class="confirm-value" id="summary-date">—</span></div>
-            <div class="confirm-row"><span class="confirm-label">Session Type</span><span class="confirm-value" id="summary-type">—</span></div>
-            <div class="confirm-row"><span class="confirm-label">Length</span><span class="confirm-value" id="summary-length">—</span></div>
-            <div class="confirm-row"><span class="confirm-label">Location</span><span class="confirm-value" id="summary-location">—</span></div>
-          </div>
-          <div class="booking-field">
-            <label class="booking-label" for="client-name">Your Name</label>
-            <input type="text" class="booking-input" id="client-name" placeholder="Full name" autocomplete="name">
+        <!-- REMOVED step-7 confirm panel — client info now in step 5 -->
+        <!-- keep a dummy anchor so old references still resolve -->
+        <div style="display:none">
+          <span id="summary-date"></span><span id="summary-type"></span>
+          <span id="summary-length"></span><span id="summary-location"></span>
+          <input id="REMOVED_client-name">
           </div>
           <div class="booking-field">
             <label class="booking-label" for="client-email">Email Address</label>
             <input type="email" class="booking-input" id="client-email" placeholder="your@email.com" autocomplete="email">
-          </div>
-          <div class="booking-field">
-            <label class="booking-label" for="client-phone">Phone Number</label>
-            <input type="tel" class="booking-input" id="client-phone" placeholder="(555) 000-0000" autocomplete="tel">
-          </div>
-          <div class="booking-error" id="confirm-error" style="display:none;"></div>
         </div>
 
         <!-- Success -->
@@ -1993,6 +2068,44 @@ A complete service agreement and model release will be provided at your session 
       bookingState.signatureDrawn = false;
     }
 
+    function initPaymentStep() {
+      const pricing   = window.siteConfig?.booking?.pricing   || { mini: 75, full: 150 };
+      const username  = window.siteConfig?.booking?.venmoUsername || 'LisiLouPhoto';
+      const types     = window.siteConfig?.booking?.sessionTypes  || [];
+      const locations = window.siteConfig?.locations               || [];
+
+      const amount     = bookingState.sessionLength === 'mini' ? pricing.mini : pricing.full;
+      const typeLabel  = (bookingState.sessionType === 'other' && bookingState.sessionTypeOther)
+        ? `Other — ${bookingState.sessionTypeOther}`
+        : types.find(t => t.id === bookingState.sessionType)?.label || bookingState.sessionType;
+      const locLabel   = locations.find(l => l.id === bookingState.sessionLocation)?.name || bookingState.sessionLocation;
+      const lenLabel   = bookingState.sessionLength === 'mini' ? 'Mini — 30 min' : 'Full — 60 min';
+
+      document.getElementById('pay-summary-date').textContent     = bookingState.sessionDate || '—';
+      document.getElementById('pay-summary-type').textContent     = typeLabel || '—';
+      document.getElementById('pay-summary-length').textContent   = lenLabel;
+      document.getElementById('pay-summary-location').textContent = locLabel || '—';
+      document.getElementById('payment-amount').textContent       = `$${amount}`;
+
+      const note     = `LisiLou Booking - ${typeLabel} on ${bookingState.sessionDate}`;
+      const venmoUrl = `https://venmo.com/${username}?txn=pay&amount=${amount}&note=${encodeURIComponent(note)}`;
+
+      document.getElementById('venmo-link').href = venmoUrl;
+      renderVenmoQr(venmoUrl);
+    }
+
+    async function renderVenmoQr(venmoUrl) {
+      const container = document.getElementById('venmo-qr');
+      container.innerHTML = '';
+      try {
+        const res = await fetch(`/api/venmo-qr?url=${encodeURIComponent(venmoUrl)}`);
+        if (!res.ok) throw new Error('qr failed');
+        container.innerHTML = await res.text();
+      } catch {
+        // Silent — the button still works without the QR
+      }
+    }
+
     function openBooking() {
       document.getElementById('booking-overlay').classList.add('active');
       document.body.style.overflow = 'hidden';
@@ -2050,8 +2163,8 @@ A complete service agreement and model release will be provided at your session 
       btnNext.disabled = false;
       counter.textContent = 'Step ' + step + ' of ' + BOOKING_STEPS;
 
-      if (step === BOOKING_STEPS) populateSummary();
-      if (step === 5) initContractStep();
+      if (step === 6) initContractStep();
+      if (step === 7) initPaymentStep();
     }
 
     function selectOption(card, field) {
@@ -2115,6 +2228,25 @@ A complete service agreement and model release will be provided at your session 
         case 4:
           return !!bookingState.sessionLocation;
         case 5: {
+          // Your Info step
+          const name  = document.getElementById('client-name').value.trim();
+          const email = document.getElementById('client-email').value.trim();
+          const errEl = document.getElementById('info-error');
+          if (!name || !email) {
+            errEl.textContent = 'Please enter your name and email address.';
+            errEl.style.display = 'block';
+            return false;
+          }
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            errEl.textContent = 'Please enter a valid email address.';
+            errEl.style.display = 'block';
+            return false;
+          }
+          errEl.style.display = 'none';
+          return true;
+        }
+        case 6: {
+          // Contract step
           const errEl = document.getElementById('contract-error');
           if (!bookingState.contractScrolled) {
             errEl.textContent = 'Please scroll through the full agreement.';
@@ -2126,8 +2258,8 @@ A complete service agreement and model release will be provided at your session 
             errEl.style.display = 'block';
             return false;
           }
-          const name = document.getElementById('contract-name').value.trim();
-          if (!name) {
+          const sigName = document.getElementById('contract-name').value.trim();
+          if (!sigName) {
             errEl.textContent = 'Please type your full name to confirm.';
             errEl.style.display = 'block';
             document.getElementById('contract-name').focus();
@@ -2136,77 +2268,60 @@ A complete service agreement and model release will be provided at your session 
           errEl.style.display = 'none';
           return true;
         }
-        case 6: {
+        case 7: {
+          // Payment step — checkbox + submit
           const ok = document.getElementById('payment-sent').checked;
           document.getElementById('payment-error').style.display = ok ? 'none' : 'block';
           return ok;
         }
-        case 7:
-          return validateClientInfo();
         default:
           return true;
       }
     }
 
-    function validateClientInfo() {
-      const name = document.getElementById('client-name').value.trim();
-      const email = document.getElementById('client-email').value.trim();
-      const errEl = document.getElementById('confirm-error');
-      if (!name || !email) {
-        errEl.textContent = 'Please enter your name and email address.';
-        errEl.style.display = 'block';
-        return false;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errEl.textContent = 'Please enter a valid email address.';
-        errEl.style.display = 'block';
-        return false;
-      }
-      errEl.style.display = 'none';
-      return true;
-    }
-
     async function submitBooking() {
-      bookingState.sessionDate = document.getElementById('session-date').value;
-      bookingState.clientName = document.getElementById('client-name').value.trim();
-      bookingState.clientEmail = document.getElementById('client-email').value.trim();
-      bookingState.clientPhone = document.getElementById('client-phone').value.trim();
+      // Client info is now collected in step 5
+      bookingState.sessionDate  = document.getElementById('session-date').value;
+      bookingState.clientName   = document.getElementById('client-name').value.trim();
+      bookingState.clientEmail  = document.getElementById('client-email').value.trim();
+      bookingState.clientPhone  = document.getElementById('client-phone').value.trim();
 
       const btnNext = document.getElementById('btn-next');
       btnNext.textContent = 'Submitting…';
       btnNext.disabled = true;
 
       try {
-        // 1. Create booking record
+        // 1. Create booking — include payment_status since client confirmed sending
         const res = await fetch('/api/bookings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            client_name: bookingState.clientName,
-            client_email: bookingState.clientEmail,
-            client_phone: bookingState.clientPhone,
-            session_date: bookingState.sessionDate,
-            session_type: bookingState.sessionType === 'other'
+            client_name:    bookingState.clientName,
+            client_email:   bookingState.clientEmail,
+            client_phone:   bookingState.clientPhone,
+            session_date:   bookingState.sessionDate,
+            session_type:   bookingState.sessionType === 'other'
               ? 'other: ' + bookingState.sessionTypeOther
               : bookingState.sessionType,
             session_length: bookingState.sessionLength,
-            location: (window.siteConfig?.locations || []).find(l => l.id === bookingState.sessionLocation)?.name
+            location:       (window.siteConfig?.locations || []).find(l => l.id === bookingState.sessionLocation)?.name
               || bookingState.sessionLocation,
+            payment_status: 'pending_confirmation',
           }),
         });
         if (!res.ok) throw new Error('server error');
         const { id: bookingId } = await res.json();
 
-        // 2. Submit signature if collected in step 5
+        // 2. Submit signature captured in step 6
         if (bookingState.signatureDrawn && bookingId) {
-          const sigCanvas = document.getElementById('sig-canvas');
+          const sigCanvas    = document.getElementById('sig-canvas');
           const contractName = document.getElementById('contract-name').value.trim();
           await fetch(`/api/bookings/${bookingId}/sign`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               signature_png: sigCanvas.toDataURL('image/png'),
-              full_name: contractName || bookingState.clientName,
+              full_name:     contractName || bookingState.clientName,
             }),
           });
         }
