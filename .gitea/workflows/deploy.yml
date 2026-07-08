@@ -31,7 +31,8 @@ jobs:
               ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} \
               'set -e
                cd /opt/lisilou-portfolio
-               git pull origin main
+               git fetch origin
+               git reset --hard origin/main
                docker compose build
                docker compose up -d
                echo "Deploy complete"'
