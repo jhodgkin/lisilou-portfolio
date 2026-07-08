@@ -1001,15 +1001,96 @@
     }
 
     /* Contract step */
-    .contract-placeholder {
-      background: var(--color-bg-warm);
+    .contract-viewer {
       border: 1px solid var(--color-accent);
-      padding: 2rem;
-      margin-bottom: 1.5rem;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 0.75rem;
+      background: #e8e8e8;
+      position: relative;
+      scroll-behavior: smooth;
+    }
+
+    .contract-viewer canvas {
+      display: block;
+      width: 100%;
+      margin-bottom: 2px;
+    }
+
+    .contract-loading {
+      padding: 2.5rem 1rem;
       text-align: center;
+      font-style: italic;
       font-size: 0.85rem;
       color: var(--color-text-light);
+      background: var(--color-bg-warm);
     }
+
+    .contract-fallback {
+      padding: 1.25rem 1.5rem;
+      font-size: 0.8rem;
+      line-height: 1.7;
+      color: var(--color-text);
+      background: var(--color-white);
+      white-space: pre-line;
+    }
+
+    .contract-fallback h4 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 400;
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    .contract-scroll-notice {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      text-align: center;
+      margin-bottom: 1rem;
+      transition: opacity 0.4s;
+    }
+
+    .contract-scroll-notice.hidden { opacity: 0; pointer-events: none; }
+
+    .sig-section { transition: opacity 0.3s; }
+    .sig-section.locked { opacity: 0.35; pointer-events: none; }
+
+    .sig-pad-wrapper {
+      position: relative;
+      border: 1px solid var(--color-accent);
+      background: #fff;
+      margin-bottom: 1rem;
+      cursor: crosshair;
+    }
+
+    .sig-pad-wrapper:focus-within { border-color: var(--color-primary); }
+
+    #sig-canvas {
+      display: block;
+      width: 100%;
+      height: 110px;
+      touch-action: none;
+    }
+
+    .sig-clear-btn {
+      position: absolute;
+      top: 0.4rem;
+      right: 0.4rem;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: none;
+      border: 1px solid var(--color-accent);
+      color: var(--color-text-light);
+      padding: 0.2rem 0.55rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .sig-clear-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
 
     .booking-checkbox-label {
       display: flex;
@@ -1327,16 +1408,28 @@
         <!-- Step 5: Contract -->
         <div class="step-panel" id="step-5">
           <h3 class="step-heading">Model Release &amp; Contract</h3>
-          <p class="step-subheading">Please review and sign the session agreement before continuing.</p>
-          <div class="contract-placeholder">
-            <p>Contract document will be displayed here.</p>
-            <p style="margin-top:0.5rem;font-size:0.75rem;">Full PDF viewer and signature pad coming in Issue #6</p>
+          <p class="step-subheading">Read the full agreement below, then sign and type your name.</p>
+
+          <!-- PDF viewer — filled by initContractStep() -->
+          <div class="contract-viewer" id="contract-viewer">
+            <div class="contract-loading" id="contract-loading">Loading contract…</div>
           </div>
-          <label class="booking-checkbox-label">
-            <input type="checkbox" id="contract-agree">
-            I have read and agree to the session contract and model release. I understand my rights and responsibilities as outlined in the agreement.
-          </label>
-          <div class="booking-error" id="contract-error" style="display:none;">Please agree to the contract to continue.</div>
+          <div class="contract-scroll-notice" id="contract-scroll-notice">Scroll to the bottom to enable signing ↓</div>
+
+          <!-- Signature pad — locked until scrolled -->
+          <div class="sig-section locked" id="sig-section">
+            <div class="booking-label" style="margin-bottom:0.4rem;">Your Signature</div>
+            <div class="sig-pad-wrapper">
+              <canvas id="sig-canvas"></canvas>
+              <button type="button" class="sig-clear-btn" onclick="clearSignature()">Clear</button>
+            </div>
+            <div class="booking-field">
+              <label class="booking-label" for="contract-name">Full Name (type to confirm)</label>
+              <input type="text" class="booking-input" id="contract-name" placeholder="Your full legal name" autocomplete="name">
+            </div>
+          </div>
+
+          <div class="booking-error" id="contract-error" style="display:none;"></div>
         </div>
 
         <!-- Step 6: Payment -->
@@ -1657,6 +1750,7 @@
     const bookingState = {
       sessionDate: '', sessionType: '', sessionTypeOther: '', sessionLength: '',
       sessionLocation: '', clientName: '', clientEmail: '', clientPhone: '',
+      contractScrolled: false, signatureDrawn: false,
     };
 
     let currentStep = 0;
@@ -1754,17 +1848,164 @@
       }
     }
 
+    // ── Contract step ──────────────────────────────────────────────────────────
+
+    async function initContractStep() {
+      const viewer = document.getElementById('contract-viewer');
+      const notice = document.getElementById('contract-scroll-notice');
+      const sigSection = document.getElementById('sig-section');
+
+      // Reset state
+      bookingState.contractScrolled = false;
+      bookingState.signatureDrawn = false;
+      notice.classList.remove('hidden');
+      sigSection.classList.add('locked');
+
+      // Clear any previous render
+      viewer.innerHTML = '<div class="contract-loading" id="contract-loading">Loading contract…</div>';
+
+      const hasPdfJs = typeof window.pdfjsLib !== 'undefined';
+      let pdfLoaded = false;
+
+      if (hasPdfJs) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        try {
+          const loadingEl = document.getElementById('contract-loading');
+          const pdf = await window.pdfjsLib.getDocument('/api/contracts/template').promise;
+          if (loadingEl) loadingEl.remove();
+
+          for (let p = 1; p <= pdf.numPages; p++) {
+            const page = await pdf.getPage(p);
+            const viewport = page.getViewport({ scale: 1.4 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            viewer.appendChild(canvas);
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+          }
+          pdfLoaded = true;
+        } catch (e) {
+          // PDF not available or fetch failed — fall through to text fallback
+        }
+      }
+
+      if (!pdfLoaded) {
+        viewer.innerHTML = `<div class="contract-fallback">
+<h4>Session Agreement &amp; Model Release</h4>
+By proceeding you agree to the following terms with LisiLou Photography:
+
+<strong>Session &amp; Payment</strong>
+A non-refundable booking fee reserves your date. The remainder is due on the day of the session. Cancellations with less than 48 hours notice forfeit the booking fee. A $25 rescheduling fee applies for changes made within 48 hours.
+
+<strong>Image Rights &amp; Model Release</strong>
+You grant LisiLou Photography permission to display, reproduce, and use session images for portfolio, social media, and promotional purposes. Images will not be sold to third parties. You retain the right to print and share your own digital files.
+
+<strong>Delivery</strong>
+Edited digital images will be delivered within 2–3 weeks via a private online gallery. RAW files are not included.
+
+<strong>Full Contract</strong>
+A complete service agreement and model release will be provided at your session for signature. This electronic agreement acknowledges the key terms above.
+</div>`;
+      }
+
+      setupScrollDetection(viewer);
+      setupSignaturePad();
+    }
+
+    function setupScrollDetection(viewer) {
+      function check() {
+        const atBottom = viewer.scrollHeight - viewer.scrollTop <= viewer.clientHeight + 60;
+        if (atBottom) {
+          bookingState.contractScrolled = true;
+          document.getElementById('contract-scroll-notice').classList.add('hidden');
+          document.getElementById('sig-section').classList.remove('locked');
+          viewer.removeEventListener('scroll', check);
+        }
+      }
+      viewer.addEventListener('scroll', check);
+      // Trigger immediately in case content is shorter than the container
+      check();
+    }
+
+    function setupSignaturePad() {
+      const canvas = document.getElementById('sig-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      // Size canvas pixels to its CSS display size
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.strokeStyle = '#2c2c2c';
+      ctx.lineWidth = 1.8;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      let drawing = false;
+
+      function pos(e) {
+        const r = canvas.getBoundingClientRect();
+        const src = e.touches ? e.touches[0] : e;
+        return { x: src.clientX - r.left, y: src.clientY - r.top };
+      }
+
+      function start(e) {
+        e.preventDefault();
+        drawing = true;
+        const { x, y } = pos(e);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      }
+
+      function move(e) {
+        if (!drawing) return;
+        e.preventDefault();
+        const { x, y } = pos(e);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        bookingState.signatureDrawn = true;
+      }
+
+      function stop() { drawing = false; }
+
+      canvas.addEventListener('mousedown', start);
+      canvas.addEventListener('mousemove', move);
+      canvas.addEventListener('mouseup', stop);
+      canvas.addEventListener('mouseleave', stop);
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', move, { passive: false });
+      canvas.addEventListener('touchend', stop);
+    }
+
+    function clearSignature() {
+      const canvas = document.getElementById('sig-canvas');
+      const ctx = canvas.getContext('2d');
+      const rect = canvas.getBoundingClientRect();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      bookingState.signatureDrawn = false;
+    }
+
     function openBooking() {
       document.getElementById('booking-overlay').classList.add('active');
       document.body.style.overflow = 'hidden';
       Object.keys(bookingState).forEach(k => bookingState[k] = '');
-      document.getElementById('contract-agree').checked = false;
       document.getElementById('payment-sent').checked = false;
       document.getElementById('client-name').value = '';
       document.getElementById('client-email').value = '';
       document.getElementById('client-phone').value = '';
       document.getElementById('other-type-text').value = '';
       document.getElementById('other-type-field').style.display = 'none';
+      document.getElementById('contract-name').value = '';
+      bookingState.contractScrolled = false;
+      bookingState.signatureDrawn = false;
       document.getElementById('session-date').min = new Date().toISOString().split('T')[0];
       document.getElementById('session-date').value = '';
       renderSessionTypeCards();
@@ -1810,6 +2051,7 @@
       counter.textContent = 'Step ' + step + ' of ' + BOOKING_STEPS;
 
       if (step === BOOKING_STEPS) populateSummary();
+      if (step === 5) initContractStep();
     }
 
     function selectOption(card, field) {
@@ -1873,9 +2115,26 @@
         case 4:
           return !!bookingState.sessionLocation;
         case 5: {
-          const ok = document.getElementById('contract-agree').checked;
-          document.getElementById('contract-error').style.display = ok ? 'none' : 'block';
-          return ok;
+          const errEl = document.getElementById('contract-error');
+          if (!bookingState.contractScrolled) {
+            errEl.textContent = 'Please scroll through the full agreement.';
+            errEl.style.display = 'block';
+            return false;
+          }
+          if (!bookingState.signatureDrawn) {
+            errEl.textContent = 'Please sign in the box above.';
+            errEl.style.display = 'block';
+            return false;
+          }
+          const name = document.getElementById('contract-name').value.trim();
+          if (!name) {
+            errEl.textContent = 'Please type your full name to confirm.';
+            errEl.style.display = 'block';
+            document.getElementById('contract-name').focus();
+            return false;
+          }
+          errEl.style.display = 'none';
+          return true;
         }
         case 6: {
           const ok = document.getElementById('payment-sent').checked;
@@ -1918,6 +2177,7 @@
       btnNext.disabled = true;
 
       try {
+        // 1. Create booking record
         const res = await fetch('/api/bookings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1935,6 +2195,22 @@
           }),
         });
         if (!res.ok) throw new Error('server error');
+        const { id: bookingId } = await res.json();
+
+        // 2. Submit signature if collected in step 5
+        if (bookingState.signatureDrawn && bookingId) {
+          const sigCanvas = document.getElementById('sig-canvas');
+          const contractName = document.getElementById('contract-name').value.trim();
+          await fetch(`/api/bookings/${bookingId}/sign`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              signature_png: sigCanvas.toDataURL('image/png'),
+              full_name: contractName || bookingState.clientName,
+            }),
+          });
+        }
+
         goToStep(BOOKING_STEPS + 1);
       } catch {
         const errEl = document.getElementById('confirm-error');
@@ -1981,5 +2257,6 @@
       observeRevealElements();
     });
   </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous"></script>
 </body>
 </html>
