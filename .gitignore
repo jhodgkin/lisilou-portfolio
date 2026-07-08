@@ -29,3 +29,8 @@ config/local.json
 
 # Docker
 docker-compose.override.yml
+
+# API runtime data
+api/data/*.db
+api/signed-contracts/*.pdf
+api/.env
