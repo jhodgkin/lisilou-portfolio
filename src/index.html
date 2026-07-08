@@ -846,6 +846,160 @@
       display: none;
     }
 
+    /* Location cards */
+    .location-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+    }
+
+    .location-card {
+      border: 1px solid var(--color-accent);
+      background: var(--color-white);
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.3s var(--transition-smooth);
+      user-select: none;
+    }
+
+    .location-card:hover { border-color: var(--color-primary); }
+    .location-card.selected { border-color: var(--color-primary); }
+
+    .location-card-image {
+      position: relative;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      background: var(--color-bg-warm);
+    }
+
+    .location-card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s var(--transition-smooth);
+      display: block;
+    }
+
+    .location-card:hover .location-card-image img { transform: scale(1.06); }
+
+    .location-img-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--color-bg-warm), var(--color-accent));
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-style: italic;
+      color: var(--color-text-light);
+      padding: 0.5rem;
+      text-align: center;
+    }
+
+    .location-card-check {
+      position: absolute;
+      top: 0.6rem;
+      right: 0.6rem;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      color: var(--color-white);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      z-index: 1;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .location-card.selected .location-card-check { display: flex; }
+
+    .location-card-body { padding: 0.75rem 0.9rem 0.9rem; }
+
+    .location-card-name {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 400;
+      color: var(--color-text);
+      margin-bottom: 0.4rem;
+    }
+
+    .location-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+    .location-tag {
+      font-size: 0.58rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      border: 1px solid var(--color-accent);
+      padding: 0.15rem 0.45rem;
+    }
+
+    /* Detail expand panel */
+    .location-detail {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.4s var(--transition-smooth), opacity 0.3s, margin-top 0.3s;
+      margin-top: 0;
+    }
+
+    .location-detail.open {
+      max-height: 500px;
+      opacity: 1;
+      margin-top: 1.25rem;
+    }
+
+    .location-detail-inner {
+      border: 1px solid var(--color-accent);
+      padding: 1.25rem;
+      background: var(--color-bg-warm);
+    }
+
+    .location-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .location-gallery-item {
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      background: var(--color-accent);
+    }
+
+    .location-gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s var(--transition-smooth);
+    }
+
+    .location-gallery-item img:hover { transform: scale(1.05); }
+
+    .location-detail-name {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 300;
+      color: var(--color-text);
+      margin-bottom: 0.5rem;
+    }
+
+    .location-detail-desc {
+      font-size: 0.85rem;
+      color: var(--color-text);
+      line-height: 1.65;
+      margin-bottom: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+      .location-grid { grid-template-columns: 1fr 1fr; }
+    }
+
     /* Contract step */
     .contract-placeholder {
       background: var(--color-bg-warm);
@@ -1155,29 +1309,19 @@
           <div class="option-grid length-grid" id="session-length-options"></div>
         </div>
 
-        <!-- Step 4: Location -->
+        <!-- Step 4: Location — rendered from site.json by renderLocationCards() -->
         <div class="step-panel" id="step-4">
           <h3 class="step-heading">Pick a Location</h3>
           <p class="step-subheading">Choose where you'd like your session to take place.</p>
-          <div class="option-grid" id="location-options">
-            <div class="option-card" data-value="outdoor-park" onclick="selectOption(this,'sessionLocation')">
-              <div class="option-card-title">Outdoor Park</div>
-              <div class="option-card-desc">Natural setting</div>
-            </div>
-            <div class="option-card" data-value="studio" onclick="selectOption(this,'sessionLocation')">
-              <div class="option-card-title">Studio</div>
-              <div class="option-card-desc">Controlled lighting</div>
-            </div>
-            <div class="option-card" data-value="urban" onclick="selectOption(this,'sessionLocation')">
-              <div class="option-card-title">Urban</div>
-              <div class="option-card-desc">City backdrop</div>
-            </div>
-            <div class="option-card" data-value="client-choice" onclick="selectOption(this,'sessionLocation')">
-              <div class="option-card-title">Your Choice</div>
-              <div class="option-card-desc">Suggest a location</div>
+          <div class="location-grid" id="location-options"></div>
+          <div class="location-detail" id="location-detail">
+            <div class="location-detail-inner">
+              <div class="location-gallery" id="location-detail-gallery"></div>
+              <div class="location-detail-name" id="location-detail-name"></div>
+              <p class="location-detail-desc" id="location-detail-desc"></p>
+              <div class="location-tags" id="location-detail-tags"></div>
             </div>
           </div>
-          <!-- Issue #5 will replace these with photo cards from config/site.json -->
         </div>
 
         <!-- Step 5: Contract -->
@@ -1549,6 +1693,67 @@
         </div>`;
     }
 
+    function renderLocationCards() {
+      const locations = window.siteConfig?.locations;
+      const grid = document.getElementById('location-options');
+
+      if (!locations || locations.length === 0) {
+        grid.innerHTML = '<p style="color:var(--color-text-light);font-size:0.85rem;">No locations configured yet.</p>';
+        return;
+      }
+
+      grid.innerHTML = locations.map(loc => {
+        const imgHtml = loc.heroImage
+          ? `<img src="${loc.heroImage}" alt="${loc.name}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=&quot;location-img-placeholder&quot;>${loc.name}</div>'">`
+          : `<div class="location-img-placeholder">${loc.name}</div>`;
+        const tags = (loc.tags || []).map(t => `<span class="location-tag">${t}</span>`).join('');
+        return `
+          <div class="location-card" data-id="${loc.id}" onclick="selectLocation('${loc.id}')">
+            <div class="location-card-image">
+              ${imgHtml}
+              <div class="location-card-check">✓</div>
+            </div>
+            <div class="location-card-body">
+              <div class="location-card-name">${loc.name}</div>
+              <div class="location-tags">${tags}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function selectLocation(id) {
+      const locations = window.siteConfig?.locations || [];
+      const loc = locations.find(l => l.id === id);
+      if (!loc) return;
+
+      document.querySelectorAll('.location-card').forEach(c => c.classList.remove('selected'));
+      const card = document.querySelector(`.location-card[data-id="${id}"]`);
+      if (card) card.classList.add('selected');
+      bookingState.sessionLocation = id;
+
+      const detail = document.getElementById('location-detail');
+      const wasOpen = detail.classList.contains('open') && detail.dataset.locationId === id;
+
+      if (wasOpen) {
+        detail.classList.remove('open');
+        detail.dataset.locationId = '';
+      } else {
+        const gallery = (loc.galleryImages || []);
+        document.getElementById('location-detail-gallery').innerHTML = gallery.length
+          ? gallery.map(src => `
+              <div class="location-gallery-item">
+                <img src="${src}" alt="" loading="lazy" onerror="this.parentNode.style.display='none'">
+              </div>`).join('')
+          : '';
+        document.getElementById('location-detail-name').textContent = loc.name;
+        document.getElementById('location-detail-desc').textContent = loc.description || '';
+        document.getElementById('location-detail-tags').innerHTML = (loc.tags || [])
+          .map(t => `<span class="location-tag">${t}</span>`).join('');
+        detail.dataset.locationId = id;
+        detail.classList.add('open');
+      }
+    }
+
     function openBooking() {
       document.getElementById('booking-overlay').classList.add('active');
       document.body.style.overflow = 'hidden';
@@ -1564,6 +1769,10 @@
       document.getElementById('session-date').value = '';
       renderSessionTypeCards();
       renderSessionLengthCards();
+      renderLocationCards();
+      const locationDetail = document.getElementById('location-detail');
+      locationDetail.classList.remove('open');
+      locationDetail.dataset.locationId = '';
       goToStep(1);
     }
 
@@ -1639,7 +1848,8 @@
       document.getElementById('summary-date').textContent = bookingState.sessionDate || '—';
       document.getElementById('summary-type').textContent = displayType;
       document.getElementById('summary-length').textContent = lengthLabels[bookingState.sessionLength] || '—';
-      document.getElementById('summary-location').textContent = bookingState.sessionLocation || '—';
+      const loc = (window.siteConfig?.locations || []).find(l => l.id === bookingState.sessionLocation);
+      document.getElementById('summary-location').textContent = loc?.name || bookingState.sessionLocation || '—';
     }
 
     function validateStep(step) {
@@ -1720,7 +1930,8 @@
               ? 'other: ' + bookingState.sessionTypeOther
               : bookingState.sessionType,
             session_length: bookingState.sessionLength,
-            location: bookingState.sessionLocation,
+            location: (window.siteConfig?.locations || []).find(l => l.id === bookingState.sessionLocation)?.name
+              || bookingState.sessionLocation,
           }),
         });
         if (!res.ok) throw new Error('server error');

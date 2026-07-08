@@ -57,6 +57,52 @@
     "description": "Enter your gallery code to view and download your photos",
     "placeholder": "Enter your gallery code"
   },
+  "locations": [
+    {
+      "id": "river-bottoms",
+      "name": "River Bottoms",
+      "description": "A stunning riverside setting with golden light filtering through the trees — perfect for that warm, natural feel.",
+      "tags": ["Outdoor", "Golden hour", "Nature"],
+      "heroImage": "/images/locations/river-bottoms/hero.jpg",
+      "galleryImages": [
+        "/images/locations/river-bottoms/1.jpg",
+        "/images/locations/river-bottoms/2.jpg"
+      ]
+    },
+    {
+      "id": "city-park",
+      "name": "City Park",
+      "description": "Lush green spaces with open fields, mature trees, and beautiful walking paths — great for families and couples.",
+      "tags": ["Outdoor", "Green space", "Versatile"],
+      "heroImage": "/images/locations/city-park/hero.jpg",
+      "galleryImages": [
+        "/images/locations/city-park/1.jpg",
+        "/images/locations/city-park/2.jpg"
+      ]
+    },
+    {
+      "id": "downtown",
+      "name": "Downtown",
+      "description": "Urban backdrops with brick walls, murals, and architectural details — ideal for seniors and creative portraits.",
+      "tags": ["Urban", "Architecture", "Creative"],
+      "heroImage": "/images/locations/downtown/hero.jpg",
+      "galleryImages": [
+        "/images/locations/downtown/1.jpg",
+        "/images/locations/downtown/2.jpg"
+      ]
+    },
+    {
+      "id": "studio",
+      "name": "Studio",
+      "description": "A clean, controlled environment with professional lighting — great for newborns, headshots, and consistent results.",
+      "tags": ["Indoor", "Controlled lighting", "Year-round"],
+      "heroImage": "/images/locations/studio/hero.jpg",
+      "galleryImages": [
+        "/images/locations/studio/1.jpg",
+        "/images/locations/studio/2.jpg"
+      ]
+    }
+  ],
   "booking": {
     "venmoUsername": "LisiLouPhoto",
     "sessionTypes": [
