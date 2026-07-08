@@ -1,13 +1,11 @@
-FROM node:20-alpine
+FROM node:20-slim
 
-RUN apk add --no-cache python3 make g++
+RUN apt-get update -qq && apt-get install -y -qq python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY package*.json ./
-# build_from_source tells prebuild-install to compile better-sqlite3 against
-# musl (Alpine) instead of downloading a prebuilt glibc binary
-RUN npm_config_build_from_source=true npm ci --omit=dev
+RUN npm ci --omit=dev
 
 COPY . .
 
