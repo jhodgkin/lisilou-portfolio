@@ -591,6 +591,380 @@
       }
     }
 
+    /* ── Booking Modal ─────────────────────────────────── */
+
+    .booking-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(44, 44, 44, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.4s var(--transition-smooth), visibility 0.4s;
+    }
+
+    .booking-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .booking-modal {
+      background: var(--color-bg);
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(20px);
+      transition: transform 0.4s var(--transition-smooth);
+    }
+
+    .booking-overlay.active .booking-modal {
+      transform: translateY(0);
+    }
+
+    .booking-close {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.5rem;
+      width: 32px;
+      height: 32px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--color-text-light);
+      font-size: 1.4rem;
+      line-height: 1;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.3s;
+      z-index: 1;
+    }
+
+    .booking-close:hover { color: var(--color-text); }
+
+    .booking-header {
+      padding: 2.5rem 3rem 1.5rem;
+      border-bottom: 1px solid var(--color-accent);
+    }
+
+    .booking-title {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 300;
+      color: var(--color-text);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Step indicator */
+    .booking-step-bar {
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .booking-step-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      position: relative;
+    }
+
+    .booking-step-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 11px;
+      left: 50%;
+      right: -50%;
+      height: 1px;
+      background: var(--color-accent);
+      z-index: 0;
+    }
+
+    .booking-step-item.completed:not(:last-child)::after {
+      background: var(--color-primary);
+    }
+
+    .step-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid var(--color-accent);
+      background: var(--color-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      color: var(--color-text-light);
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s var(--transition-smooth);
+    }
+
+    .booking-step-item.active .step-dot,
+    .booking-step-item.completed .step-dot {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: var(--color-white);
+    }
+
+    .step-label-text {
+      font-size: 0.58rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+      transition: color 0.3s;
+    }
+
+    .booking-step-item.active .step-label-text { color: var(--color-primary); }
+
+    /* Step panels */
+    .booking-content {
+      padding: 2.5rem 3rem;
+      flex: 1;
+      min-height: 300px;
+    }
+
+    .step-panel { display: none; animation: stepFadeIn 0.3s var(--transition-smooth); }
+    .step-panel.active { display: block; }
+
+    @keyframes stepFadeIn {
+      from { opacity: 0; transform: translateX(8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .step-heading {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 300;
+      color: var(--color-text);
+      margin-bottom: 0.4rem;
+    }
+
+    .step-subheading {
+      font-size: 0.85rem;
+      color: var(--color-text-light);
+      margin-bottom: 2rem;
+    }
+
+    .booking-field { margin-bottom: 1.5rem; }
+
+    .booking-label {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+      margin-bottom: 0.5rem;
+    }
+
+    .booking-input {
+      width: 100%;
+      padding: 0.9rem 1rem;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      border: 1px solid var(--color-accent);
+      background: var(--color-white);
+      color: var(--color-text);
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .booking-input:focus { border-color: var(--color-primary); }
+
+    /* Option cards */
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 1rem;
+    }
+
+    .option-card {
+      padding: 1.25rem 1rem;
+      border: 1px solid var(--color-accent);
+      background: var(--color-white);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.3s var(--transition-smooth);
+      user-select: none;
+    }
+
+    .option-card:hover { border-color: var(--color-primary); }
+
+    .option-card.selected {
+      border-color: var(--color-primary);
+      background: var(--color-bg-warm);
+    }
+
+    .option-card-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 400;
+      color: var(--color-text);
+      margin-bottom: 0.25rem;
+    }
+
+    .option-card-desc { font-size: 0.75rem; color: var(--color-text-light); }
+
+    /* Contract step */
+    .contract-placeholder {
+      background: var(--color-bg-warm);
+      border: 1px solid var(--color-accent);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--color-text-light);
+    }
+
+    .booking-checkbox-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--color-text);
+      line-height: 1.5;
+    }
+
+    .booking-checkbox-label input[type="checkbox"] {
+      margin-top: 3px;
+      accent-color: var(--color-primary);
+      flex-shrink: 0;
+    }
+
+    /* Payment step */
+    .payment-amount {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 300;
+      color: var(--color-primary);
+      margin: 0.5rem 0 1.25rem;
+    }
+
+    .payment-note {
+      background: var(--color-bg-warm);
+      border-left: 2px solid var(--color-primary);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--color-text);
+    }
+
+    /* Confirm / summary */
+    .confirm-summary {
+      background: var(--color-bg-warm);
+      border: 1px solid var(--color-accent);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .confirm-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--color-accent);
+      font-size: 0.85rem;
+    }
+
+    .confirm-row:last-child { border-bottom: none; }
+
+    .confirm-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+    }
+
+    .confirm-value { color: var(--color-text); }
+
+    /* Error / success */
+    .booking-error {
+      font-size: 0.8rem;
+      color: #b94040;
+      margin-top: 0.5rem;
+    }
+
+    .booking-success {
+      text-align: center;
+      padding: 3rem 1rem;
+    }
+
+    .booking-success-check {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 1px solid var(--color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      color: var(--color-primary);
+      font-size: 1.4rem;
+    }
+
+    .booking-success h3 {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 300;
+      margin-bottom: 0.75rem;
+    }
+
+    .booking-success p { font-size: 0.9rem; color: var(--color-text-light); max-width: 400px; margin: 0 auto; }
+
+    /* Nav bar */
+    .booking-nav {
+      padding: 1.5rem 3rem;
+      border-top: 1px solid var(--color-accent);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .booking-nav-right { display: flex; align-items: center; gap: 1rem; }
+
+    .step-counter { font-size: 0.72rem; color: var(--color-text-light); letter-spacing: 0.1em; }
+
+    /* Nav "Book" button */
+    .nav-book-btn {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 400;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      border: 1px solid var(--color-primary);
+      background: transparent;
+      padding: 0.5rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.3s var(--transition-smooth);
+      text-decoration: none;
+    }
+
+    .nav-book-btn:hover {
+      background: var(--color-primary);
+      color: var(--color-white);
+    }
+
+    @media (max-width: 768px) {
+      .booking-header { padding: 2rem 1.5rem 1.25rem; }
+      .booking-content { padding: 1.75rem 1.5rem; }
+      .booking-nav { padding: 1.25rem 1.5rem; }
+      .step-label-text { display: none; }
+      .booking-modal { max-width: 100%; max-height: 100vh; height: 100%; }
+    }
+
     /* Reveal animations */
     .reveal {
       opacity: 0;
@@ -620,6 +994,7 @@
       <a href="#portfolio">Portfolio</a>
       <a href="#client-access">Client Access</a>
       <a href="#connect">Connect</a>
+      <button class="nav-book-btn" onclick="openBooking()">Book a Session</button>
     </nav>
     <div class="nav-toggle" id="nav-toggle">
       <span></span>
@@ -633,6 +1008,7 @@
     <a href="#portfolio" class="mobile-nav-link">Portfolio</a>
     <a href="#client-access" class="mobile-nav-link">Client Access</a>
     <a href="#connect" class="mobile-nav-link">Connect</a>
+    <a href="#" class="mobile-nav-link" onclick="mobileNav.classList.remove('active'); openBooking(); return false;">Book a Session</a>
   </div>
 
   <!-- Hero Section -->
@@ -646,6 +1022,7 @@
       <div class="hero-cta">
         <a href="#portfolio" class="btn btn-filled">View Portfolio</a>
         <a href="#client-access" class="btn">Client Access</a>
+        <button class="btn" onclick="openBooking()">Book a Session</button>
       </div>
     </div>
     <div class="scroll-indicator">
@@ -698,6 +1075,182 @@
     <div class="footer-logo" id="footer-logo">LISILOU</div>
     <p class="footer-text">&copy; <span id="current-year"></span> LisiLou Photography. All rights reserved.</p>
   </footer>
+
+  <!-- ── Booking Modal ───────────────────────────────────── -->
+  <div class="booking-overlay" id="booking-overlay" role="dialog" aria-modal="true" aria-label="Book a Session">
+    <div class="booking-modal">
+      <button class="booking-close" id="booking-close" aria-label="Close">✕</button>
+
+      <div class="booking-header">
+        <h2 class="booking-title">Book a Session</h2>
+        <div class="booking-step-bar" id="booking-step-bar">
+          <div class="booking-step-item" data-step="1"><div class="step-dot">1</div><span class="step-label-text">Date</span></div>
+          <div class="booking-step-item" data-step="2"><div class="step-dot">2</div><span class="step-label-text">Session</span></div>
+          <div class="booking-step-item" data-step="3"><div class="step-dot">3</div><span class="step-label-text">Length</span></div>
+          <div class="booking-step-item" data-step="4"><div class="step-dot">4</div><span class="step-label-text">Location</span></div>
+          <div class="booking-step-item" data-step="5"><div class="step-dot">5</div><span class="step-label-text">Contract</span></div>
+          <div class="booking-step-item" data-step="6"><div class="step-dot">6</div><span class="step-label-text">Payment</span></div>
+          <div class="booking-step-item" data-step="7"><div class="step-dot">7</div><span class="step-label-text">Confirm</span></div>
+        </div>
+      </div>
+
+      <div class="booking-content">
+
+        <!-- Step 1: Date -->
+        <div class="step-panel" id="step-1">
+          <h3 class="step-heading">Choose a Date</h3>
+          <p class="step-subheading">Select an available date for your session.</p>
+          <div class="booking-field">
+            <label class="booking-label" for="session-date">Session Date</label>
+            <input type="date" class="booking-input" id="session-date">
+          </div>
+          <!-- Issue #3 will replace this input with a real availability calendar -->
+        </div>
+
+        <!-- Step 2: Session Type -->
+        <div class="step-panel" id="step-2">
+          <h3 class="step-heading">Session Type</h3>
+          <p class="step-subheading">What kind of session are you looking for?</p>
+          <div class="option-grid" id="session-type-options">
+            <div class="option-card" data-value="individual" onclick="selectOption(this,'sessionType')">
+              <div class="option-card-title">Individual</div>
+              <div class="option-card-desc">Portrait session</div>
+            </div>
+            <div class="option-card" data-value="couple" onclick="selectOption(this,'sessionType')">
+              <div class="option-card-title">Couple</div>
+              <div class="option-card-desc">Engagement &amp; couples</div>
+            </div>
+            <div class="option-card" data-value="family" onclick="selectOption(this,'sessionType')">
+              <div class="option-card-title">Family</div>
+              <div class="option-card-desc">Family portraits</div>
+            </div>
+            <div class="option-card" data-value="newborn" onclick="selectOption(this,'sessionType')">
+              <div class="option-card-title">Newborn</div>
+              <div class="option-card-desc">Newborn &amp; maternity</div>
+            </div>
+          </div>
+          <!-- Issue #4 will drive these cards from site.json -->
+        </div>
+
+        <!-- Step 3: Session Length -->
+        <div class="step-panel" id="step-3">
+          <h3 class="step-heading">Session Length</h3>
+          <p class="step-subheading">How much time would you like?</p>
+          <div class="option-grid" id="session-length-options">
+            <div class="option-card" data-value="mini" onclick="selectOption(this,'sessionLength')">
+              <div class="option-card-title">Mini Session</div>
+              <div class="option-card-desc">30 minutes</div>
+            </div>
+            <div class="option-card" data-value="full" onclick="selectOption(this,'sessionLength')">
+              <div class="option-card-title">Full Session</div>
+              <div class="option-card-desc">60 minutes</div>
+            </div>
+          </div>
+          <!-- Issue #4 will add pricing from site.json config -->
+        </div>
+
+        <!-- Step 4: Location -->
+        <div class="step-panel" id="step-4">
+          <h3 class="step-heading">Pick a Location</h3>
+          <p class="step-subheading">Choose where you'd like your session to take place.</p>
+          <div class="option-grid" id="location-options">
+            <div class="option-card" data-value="outdoor-park" onclick="selectOption(this,'sessionLocation')">
+              <div class="option-card-title">Outdoor Park</div>
+              <div class="option-card-desc">Natural setting</div>
+            </div>
+            <div class="option-card" data-value="studio" onclick="selectOption(this,'sessionLocation')">
+              <div class="option-card-title">Studio</div>
+              <div class="option-card-desc">Controlled lighting</div>
+            </div>
+            <div class="option-card" data-value="urban" onclick="selectOption(this,'sessionLocation')">
+              <div class="option-card-title">Urban</div>
+              <div class="option-card-desc">City backdrop</div>
+            </div>
+            <div class="option-card" data-value="client-choice" onclick="selectOption(this,'sessionLocation')">
+              <div class="option-card-title">Your Choice</div>
+              <div class="option-card-desc">Suggest a location</div>
+            </div>
+          </div>
+          <!-- Issue #5 will replace these with photo cards from config/site.json -->
+        </div>
+
+        <!-- Step 5: Contract -->
+        <div class="step-panel" id="step-5">
+          <h3 class="step-heading">Model Release &amp; Contract</h3>
+          <p class="step-subheading">Please review and sign the session agreement before continuing.</p>
+          <div class="contract-placeholder">
+            <p>Contract document will be displayed here.</p>
+            <p style="margin-top:0.5rem;font-size:0.75rem;">Full PDF viewer and signature pad coming in Issue #6</p>
+          </div>
+          <label class="booking-checkbox-label">
+            <input type="checkbox" id="contract-agree">
+            I have read and agree to the session contract and model release. I understand my rights and responsibilities as outlined in the agreement.
+          </label>
+          <div class="booking-error" id="contract-error" style="display:none;">Please agree to the contract to continue.</div>
+        </div>
+
+        <!-- Step 6: Payment -->
+        <div class="step-panel" id="step-6">
+          <h3 class="step-heading">Booking Fee</h3>
+          <p class="step-subheading">A non-refundable booking fee reserves your date.</p>
+          <div class="payment-amount" id="payment-amount">—</div>
+          <div class="payment-note">
+            Send payment via Venmo to reserve your session. Your date is not confirmed until payment is received.
+          </div>
+          <p style="font-size:0.82rem;color:var(--color-text-light);margin-bottom:1.5rem;">Venmo link and QR code will appear here — Issue #7</p>
+          <label class="booking-checkbox-label">
+            <input type="checkbox" id="payment-sent">
+            I have sent the booking fee payment via Venmo.
+          </label>
+          <div class="booking-error" id="payment-error" style="display:none;">Please confirm you've sent payment to continue.</div>
+        </div>
+
+        <!-- Step 7: Confirm -->
+        <div class="step-panel" id="step-7">
+          <h3 class="step-heading">Almost There!</h3>
+          <p class="step-subheading">Review your details and enter your contact information.</p>
+          <div class="confirm-summary">
+            <div class="confirm-row"><span class="confirm-label">Date</span><span class="confirm-value" id="summary-date">—</span></div>
+            <div class="confirm-row"><span class="confirm-label">Session Type</span><span class="confirm-value" id="summary-type">—</span></div>
+            <div class="confirm-row"><span class="confirm-label">Length</span><span class="confirm-value" id="summary-length">—</span></div>
+            <div class="confirm-row"><span class="confirm-label">Location</span><span class="confirm-value" id="summary-location">—</span></div>
+          </div>
+          <div class="booking-field">
+            <label class="booking-label" for="client-name">Your Name</label>
+            <input type="text" class="booking-input" id="client-name" placeholder="Full name" autocomplete="name">
+          </div>
+          <div class="booking-field">
+            <label class="booking-label" for="client-email">Email Address</label>
+            <input type="email" class="booking-input" id="client-email" placeholder="your@email.com" autocomplete="email">
+          </div>
+          <div class="booking-field">
+            <label class="booking-label" for="client-phone">Phone Number</label>
+            <input type="tel" class="booking-input" id="client-phone" placeholder="(555) 000-0000" autocomplete="tel">
+          </div>
+          <div class="booking-error" id="confirm-error" style="display:none;"></div>
+        </div>
+
+        <!-- Success -->
+        <div class="step-panel" id="step-success">
+          <div class="booking-success">
+            <div class="booking-success-check">✓</div>
+            <h3>You're Booked!</h3>
+            <p>Your booking request has been received. You'll hear from us within 24 hours to confirm your session once we verify your payment.</p>
+          </div>
+        </div>
+
+      </div><!-- .booking-content -->
+
+      <div class="booking-nav" id="booking-nav">
+        <button class="btn" id="btn-back" style="display:none;">Back</button>
+        <div class="booking-nav-right">
+          <span class="step-counter" id="step-counter">Step 1 of 7</span>
+          <button class="btn btn-filled" id="btn-next">Next</button>
+        </div>
+      </div>
+
+    </div><!-- .booking-modal -->
+  </div><!-- .booking-overlay -->
 
   <script>
     // Fetch all Immich album images via proxy
@@ -939,6 +1492,206 @@
 
       reveals.forEach(el => observer.observe(el));
     }
+
+    // Store config globally for the booking form to use
+    const _origApply = applyConfig;
+    async function applyConfig(config) {
+      window.siteConfig = config;
+      return _origApply(config);
+    }
+
+    // ── Booking Flow ──────────────────────────────────────
+
+    const BOOKING_STEPS = 7;
+
+    const bookingState = {
+      sessionDate: '', sessionType: '', sessionLength: '',
+      sessionLocation: '', clientName: '', clientEmail: '', clientPhone: '',
+    };
+
+    let currentStep = 0;
+
+    function openBooking() {
+      document.getElementById('booking-overlay').classList.add('active');
+      document.body.style.overflow = 'hidden';
+      // Reset state
+      Object.keys(bookingState).forEach(k => bookingState[k] = '');
+      document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+      document.getElementById('contract-agree').checked = false;
+      document.getElementById('payment-sent').checked = false;
+      document.getElementById('client-name').value = '';
+      document.getElementById('client-email').value = '';
+      document.getElementById('client-phone').value = '';
+      // Set min date to today
+      document.getElementById('session-date').min = new Date().toISOString().split('T')[0];
+      document.getElementById('session-date').value = '';
+      goToStep(1);
+    }
+
+    function closeBooking() {
+      document.getElementById('booking-overlay').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function goToStep(step) {
+      currentStep = step;
+
+      document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.booking-step-item').forEach((item, i) => {
+        item.classList.remove('active', 'completed');
+        if (i + 1 < step) item.classList.add('completed');
+        if (i + 1 === step) item.classList.add('active');
+      });
+
+      const nav = document.getElementById('booking-nav');
+      const btnBack = document.getElementById('btn-back');
+      const btnNext = document.getElementById('btn-next');
+      const counter = document.getElementById('step-counter');
+
+      if (step > BOOKING_STEPS) {
+        document.getElementById('step-success').classList.add('active');
+        nav.style.display = 'none';
+        return;
+      }
+
+      document.getElementById('step-' + step).classList.add('active');
+      nav.style.display = 'flex';
+      btnBack.style.display = step > 1 ? '' : 'none';
+      btnNext.textContent = step === BOOKING_STEPS ? 'Submit Booking' : 'Next';
+      btnNext.disabled = false;
+      counter.textContent = 'Step ' + step + ' of ' + BOOKING_STEPS;
+
+      if (step === BOOKING_STEPS) populateSummary();
+    }
+
+    function selectOption(card, field) {
+      card.closest('.option-grid').querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      bookingState[field] = card.dataset.value;
+      if (field === 'sessionLength') updatePaymentAmount();
+    }
+
+    function updatePaymentAmount() {
+      const pricing = window.siteConfig?.booking?.pricing || { mini: 75, full: 150 };
+      const amount = bookingState.sessionLength === 'mini' ? pricing.mini : pricing.full;
+      document.getElementById('payment-amount').textContent = '$' + amount;
+    }
+
+    function populateSummary() {
+      const labels = {
+        individual: 'Individual Portrait', couple: 'Couple', family: 'Family', newborn: 'Newborn',
+        mini: 'Mini Session (30 min)', full: 'Full Session (60 min)',
+        'outdoor-park': 'Outdoor Park', studio: 'Studio', urban: 'Urban', 'client-choice': 'Your Choice',
+      };
+      document.getElementById('summary-date').textContent = bookingState.sessionDate || '—';
+      document.getElementById('summary-type').textContent = labels[bookingState.sessionType] || '—';
+      document.getElementById('summary-length').textContent = labels[bookingState.sessionLength] || '—';
+      document.getElementById('summary-location').textContent = labels[bookingState.sessionLocation] || '—';
+    }
+
+    function validateStep(step) {
+      switch (step) {
+        case 1:
+          return !!document.getElementById('session-date').value;
+        case 2:
+          return !!bookingState.sessionType;
+        case 3:
+          return !!bookingState.sessionLength;
+        case 4:
+          return !!bookingState.sessionLocation;
+        case 5: {
+          const ok = document.getElementById('contract-agree').checked;
+          document.getElementById('contract-error').style.display = ok ? 'none' : 'block';
+          return ok;
+        }
+        case 6: {
+          const ok = document.getElementById('payment-sent').checked;
+          document.getElementById('payment-error').style.display = ok ? 'none' : 'block';
+          return ok;
+        }
+        case 7:
+          return validateClientInfo();
+        default:
+          return true;
+      }
+    }
+
+    function validateClientInfo() {
+      const name = document.getElementById('client-name').value.trim();
+      const email = document.getElementById('client-email').value.trim();
+      const errEl = document.getElementById('confirm-error');
+      if (!name || !email) {
+        errEl.textContent = 'Please enter your name and email address.';
+        errEl.style.display = 'block';
+        return false;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errEl.textContent = 'Please enter a valid email address.';
+        errEl.style.display = 'block';
+        return false;
+      }
+      errEl.style.display = 'none';
+      return true;
+    }
+
+    async function submitBooking() {
+      bookingState.sessionDate = document.getElementById('session-date').value;
+      bookingState.clientName = document.getElementById('client-name').value.trim();
+      bookingState.clientEmail = document.getElementById('client-email').value.trim();
+      bookingState.clientPhone = document.getElementById('client-phone').value.trim();
+
+      const btnNext = document.getElementById('btn-next');
+      btnNext.textContent = 'Submitting…';
+      btnNext.disabled = true;
+
+      try {
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_name: bookingState.clientName,
+            client_email: bookingState.clientEmail,
+            client_phone: bookingState.clientPhone,
+            session_date: bookingState.sessionDate,
+            session_type: bookingState.sessionType,
+            session_length: bookingState.sessionLength,
+            location: bookingState.sessionLocation,
+          }),
+        });
+        if (!res.ok) throw new Error('server error');
+        goToStep(BOOKING_STEPS + 1);
+      } catch {
+        const errEl = document.getElementById('confirm-error');
+        errEl.textContent = 'Something went wrong — please try again.';
+        errEl.style.display = 'block';
+        btnNext.textContent = 'Submit Booking';
+        btnNext.disabled = false;
+      }
+    }
+
+    document.getElementById('btn-next').addEventListener('click', async () => {
+      bookingState.sessionDate = document.getElementById('session-date').value;
+      if (!validateStep(currentStep)) return;
+      if (currentStep === BOOKING_STEPS) {
+        await submitBooking();
+      } else {
+        goToStep(currentStep + 1);
+      }
+    });
+
+    document.getElementById('btn-back').addEventListener('click', () => {
+      if (currentStep > 1) goToStep(currentStep - 1);
+    });
+
+    document.getElementById('booking-close').addEventListener('click', closeBooking);
+
+    document.getElementById('booking-overlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeBooking();
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && document.getElementById('booking-overlay').classList.contains('active')) closeBooking();
+    });
 
     // Page load
     window.addEventListener('load', function() {
