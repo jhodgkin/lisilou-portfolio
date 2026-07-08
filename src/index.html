@@ -816,6 +816,36 @@
 
     .option-card-desc { font-size: 0.75rem; color: var(--color-text-light); }
 
+    /* Length cards — larger variant with price */
+    .length-grid { grid-template-columns: 1fr 1fr; }
+
+    .length-card { padding: 2rem 1.25rem; }
+
+    .length-card-badge {
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      margin-bottom: 0.6rem;
+    }
+
+    .length-card-price {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 300;
+      color: var(--color-text);
+      line-height: 1;
+      margin: 0.4rem 0 0.6rem;
+    }
+
+    .length-card .option-card-desc { line-height: 1.5; margin-top: 0.5rem; }
+
+    /* "Other" free-text field in session type step */
+    .other-field {
+      margin-top: 1rem;
+      display: none;
+    }
+
     /* Contract step */
     .contract-placeholder {
       background: var(--color-bg-warm);
@@ -1107,46 +1137,22 @@
           <!-- Issue #3 will replace this input with a real availability calendar -->
         </div>
 
-        <!-- Step 2: Session Type -->
+        <!-- Step 2: Session Type — rendered from site.json by renderSessionTypeCards() -->
         <div class="step-panel" id="step-2">
           <h3 class="step-heading">Session Type</h3>
           <p class="step-subheading">What kind of session are you looking for?</p>
-          <div class="option-grid" id="session-type-options">
-            <div class="option-card" data-value="individual" onclick="selectOption(this,'sessionType')">
-              <div class="option-card-title">Individual</div>
-              <div class="option-card-desc">Portrait session</div>
-            </div>
-            <div class="option-card" data-value="couple" onclick="selectOption(this,'sessionType')">
-              <div class="option-card-title">Couple</div>
-              <div class="option-card-desc">Engagement &amp; couples</div>
-            </div>
-            <div class="option-card" data-value="family" onclick="selectOption(this,'sessionType')">
-              <div class="option-card-title">Family</div>
-              <div class="option-card-desc">Family portraits</div>
-            </div>
-            <div class="option-card" data-value="newborn" onclick="selectOption(this,'sessionType')">
-              <div class="option-card-title">Newborn</div>
-              <div class="option-card-desc">Newborn &amp; maternity</div>
-            </div>
+          <div class="option-grid" id="session-type-options"></div>
+          <div class="other-field booking-field" id="other-type-field">
+            <label class="booking-label" for="other-type-text">Tell us about your session</label>
+            <input type="text" class="booking-input" id="other-type-text" placeholder="Describe what you have in mind">
           </div>
-          <!-- Issue #4 will drive these cards from site.json -->
         </div>
 
-        <!-- Step 3: Session Length -->
+        <!-- Step 3: Session Length — rendered from site.json by renderSessionLengthCards() -->
         <div class="step-panel" id="step-3">
           <h3 class="step-heading">Session Length</h3>
           <p class="step-subheading">How much time would you like?</p>
-          <div class="option-grid" id="session-length-options">
-            <div class="option-card" data-value="mini" onclick="selectOption(this,'sessionLength')">
-              <div class="option-card-title">Mini Session</div>
-              <div class="option-card-desc">30 minutes</div>
-            </div>
-            <div class="option-card" data-value="full" onclick="selectOption(this,'sessionLength')">
-              <div class="option-card-title">Full Session</div>
-              <div class="option-card-desc">60 minutes</div>
-            </div>
-          </div>
-          <!-- Issue #4 will add pricing from site.json config -->
+          <div class="option-grid length-grid" id="session-length-options"></div>
         </div>
 
         <!-- Step 4: Location -->
@@ -1505,26 +1511,59 @@
     const BOOKING_STEPS = 7;
 
     const bookingState = {
-      sessionDate: '', sessionType: '', sessionLength: '',
+      sessionDate: '', sessionType: '', sessionTypeOther: '', sessionLength: '',
       sessionLocation: '', clientName: '', clientEmail: '', clientPhone: '',
     };
 
     let currentStep = 0;
 
+    function renderSessionTypeCards() {
+      const types = (window.siteConfig?.booking?.sessionTypes || [
+        { id: 'individual', label: 'Individual Portrait', description: 'Portrait session' },
+        { id: 'couple',     label: 'Couple',             description: 'Engagement & couples' },
+        { id: 'family',     label: 'Family',             description: 'Family portraits' },
+        { id: 'newborn',    label: 'Newborn',            description: 'Newborn & maternity' },
+      ]).concat([{ id: 'other', label: 'Other', description: 'Something else entirely' }]);
+
+      document.getElementById('session-type-options').innerHTML = types.map(t => `
+        <div class="option-card" data-value="${t.id}" onclick="selectOption(this,'sessionType')">
+          <div class="option-card-title">${t.label}</div>
+          <div class="option-card-desc">${t.description || ''}</div>
+        </div>`).join('');
+    }
+
+    function renderSessionLengthCards() {
+      const pricing = window.siteConfig?.booking?.pricing || { mini: 75, full: 150 };
+      document.getElementById('session-length-options').innerHTML = `
+        <div class="option-card length-card" data-value="mini" onclick="selectOption(this,'sessionLength')">
+          <div class="length-card-badge">30 minutes</div>
+          <div class="option-card-title">Mini Session</div>
+          <div class="length-card-price">$${pricing.mini}</div>
+          <div class="option-card-desc">A focused session — great for individuals or a single look</div>
+        </div>
+        <div class="option-card length-card" data-value="full" onclick="selectOption(this,'sessionLength')">
+          <div class="length-card-badge">60 minutes</div>
+          <div class="option-card-title">Full Session</div>
+          <div class="length-card-price">$${pricing.full}</div>
+          <div class="option-card-desc">A relaxed session with time for multiple looks and locations</div>
+        </div>`;
+    }
+
     function openBooking() {
       document.getElementById('booking-overlay').classList.add('active');
       document.body.style.overflow = 'hidden';
-      // Reset state
       Object.keys(bookingState).forEach(k => bookingState[k] = '');
-      document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
       document.getElementById('contract-agree').checked = false;
       document.getElementById('payment-sent').checked = false;
       document.getElementById('client-name').value = '';
       document.getElementById('client-email').value = '';
       document.getElementById('client-phone').value = '';
-      // Set min date to today
+      document.getElementById('other-type-text').value = '';
+      document.getElementById('other-type-field').style.display = 'none';
       document.getElementById('session-date').min = new Date().toISOString().split('T')[0];
       document.getElementById('session-date').value = '';
+      renderSessionTypeCards();
+      renderSessionLengthCards();
       goToStep(1);
     }
 
@@ -1568,6 +1607,11 @@
       card.closest('.option-grid').querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       bookingState[field] = card.dataset.value;
+      if (field === 'sessionType') {
+        const otherField = document.getElementById('other-type-field');
+        otherField.style.display = card.dataset.value === 'other' ? 'block' : 'none';
+        if (card.dataset.value !== 'other') bookingState.sessionTypeOther = '';
+      }
       if (field === 'sessionLength') updatePaymentAmount();
     }
 
@@ -1578,23 +1622,42 @@
     }
 
     function populateSummary() {
-      const labels = {
-        individual: 'Individual Portrait', couple: 'Couple', family: 'Family', newborn: 'Newborn',
-        mini: 'Mini Session (30 min)', full: 'Full Session (60 min)',
-        'outdoor-park': 'Outdoor Park', studio: 'Studio', urban: 'Urban', 'client-choice': 'Your Choice',
+      const types = window.siteConfig?.booking?.sessionTypes || [];
+      const pricing = window.siteConfig?.booking?.pricing || { mini: 75, full: 150 };
+
+      const typeLabel = types.find(t => t.id === bookingState.sessionType)?.label
+        || bookingState.sessionType || '—';
+      const displayType = bookingState.sessionType === 'other' && bookingState.sessionTypeOther
+        ? `Other — ${bookingState.sessionTypeOther}`
+        : typeLabel;
+
+      const lengthLabels = {
+        mini: `Mini Session — 30 min ($${pricing.mini})`,
+        full: `Full Session — 60 min ($${pricing.full})`,
       };
+
       document.getElementById('summary-date').textContent = bookingState.sessionDate || '—';
-      document.getElementById('summary-type').textContent = labels[bookingState.sessionType] || '—';
-      document.getElementById('summary-length').textContent = labels[bookingState.sessionLength] || '—';
-      document.getElementById('summary-location').textContent = labels[bookingState.sessionLocation] || '—';
+      document.getElementById('summary-type').textContent = displayType;
+      document.getElementById('summary-length').textContent = lengthLabels[bookingState.sessionLength] || '—';
+      document.getElementById('summary-location').textContent = bookingState.sessionLocation || '—';
     }
 
     function validateStep(step) {
       switch (step) {
         case 1:
           return !!document.getElementById('session-date').value;
-        case 2:
-          return !!bookingState.sessionType;
+        case 2: {
+          if (!bookingState.sessionType) return false;
+          if (bookingState.sessionType === 'other') {
+            const txt = document.getElementById('other-type-text').value.trim();
+            if (!txt) {
+              document.getElementById('other-type-text').focus();
+              return false;
+            }
+            bookingState.sessionTypeOther = txt;
+          }
+          return true;
+        }
         case 3:
           return !!bookingState.sessionLength;
         case 4:
@@ -1653,7 +1716,9 @@
             client_email: bookingState.clientEmail,
             client_phone: bookingState.clientPhone,
             session_date: bookingState.sessionDate,
-            session_type: bookingState.sessionType,
+            session_type: bookingState.sessionType === 'other'
+              ? 'other: ' + bookingState.sessionTypeOther
+              : bookingState.sessionType,
             session_length: bookingState.sessionLength,
             location: bookingState.sessionLocation,
           }),

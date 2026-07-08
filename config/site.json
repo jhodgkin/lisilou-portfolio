@@ -57,6 +57,20 @@
     "description": "Enter your gallery code to view and download your photos",
     "placeholder": "Enter your gallery code"
   },
+  "booking": {
+    "venmoUsername": "LisiLouPhoto",
+    "sessionTypes": [
+      { "id": "senior", "label": "Senior Portrait", "description": "Celebrate your milestone" },
+      { "id": "couple", "label": "Couple", "description": "Engagement & couples" },
+      { "id": "family", "label": "Family", "description": "Family portraits" },
+      { "id": "individual", "label": "Individual", "description": "Personal portrait session" },
+      { "id": "newborn", "label": "Newborn", "description": "Newborn & maternity" }
+    ],
+    "pricing": {
+      "mini": 75,
+      "full": 150
+    }
+  },
   "theme": {
     "primaryColor": "#8B7355",
     "accentColor": "#D4C5B5",
