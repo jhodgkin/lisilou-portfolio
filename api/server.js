@@ -31,6 +31,19 @@ function notify(event, booking, extra = {}) {
   }).catch(e => console.error(`[notify] ${event} failed:`, e.message));
 }
 
+// ── Admin auth ────────────────────────────────────────────────────────────────
+// TODO (#10): swap this bearer-token check for Authentik OIDC session validation
+// when issue #10 lands. The middleware signature stays the same; only the check changes.
+function requireAdmin(req, res, next) {
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret) return res.status(503).json({ error: 'Admin access not configured (set ADMIN_SECRET)' });
+  const auth = req.headers.authorization || '';
+  if (auth !== `Bearer ${secret}`) return res.status(401).json({ error: 'Unauthorized' });
+  next();
+}
+
+// ── Public routes ─────────────────────────────────────────────────────────────
+
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
@@ -46,7 +59,7 @@ app.get('/api/contracts/template', (req, res) => {
   res.sendFile(contractPath);
 });
 
-// Serve a signed contract PDF (used by n8n email workflow)
+// Serve a signed contract PDF (used by n8n email workflow and admin dashboard)
 app.get('/api/bookings/:id/contract', (req, res) => {
   const id = parseInt(req.params.id, 10);
   const booking = db.prepare('SELECT contract_pdf_path FROM bookings WHERE id = ?').get(id);
@@ -73,14 +86,19 @@ app.post('/api/bookings', (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
+  const ps = payment_status || 'pending';
+  // Record when the client indicated they sent payment
+  const paymentNotifiedAt = ps === 'pending_confirmation' ? new Date().toISOString() : null;
+
   const result = db.prepare(`
     INSERT INTO bookings
-      (client_name, client_email, client_phone, client_sub, session_date, session_type, session_length, location, payment_status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (client_name, client_email, client_phone, client_sub, session_date, session_type,
+       session_length, location, payment_status, payment_notified_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     client_name, client_email, client_phone, client_sub,
     session_date, session_type, session_length, location,
-    payment_status || 'pending',
+    ps, paymentNotifiedAt,
   );
 
   const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(result.lastInsertRowid);
@@ -90,9 +108,6 @@ app.post('/api/bookings', (req, res) => {
 });
 
 // Generate a QR code SVG for any URL — used by the Venmo payment step.
-// Venmo username and amount come from the frontend (which reads site.json),
-// so changing venmoUsername in config updates both the button and QR with
-// no server restart needed.
 app.get('/api/venmo-qr', async (req, res) => {
   const { url } = req.query;
   if (!url || !url.startsWith('https://venmo.com/')) {
@@ -137,13 +152,11 @@ app.post('/api/bookings/:id/sign', async (req, res) => {
       const sigY = parseFloat(process.env.CONTRACT_SIG_Y || '100');
       const page = pages[Math.min(sigPageIndex, pages.length - 1)];
 
-      // Embed the signature image
       const sigBase64 = signature_png.replace(/^data:image\/png;base64,/, '');
       const sigImage = await pdfDoc.embedPng(Buffer.from(sigBase64, 'base64'));
       const imgDims = sigImage.scaleToFit(200, 60);
       page.drawImage(sigImage, { x: sigX, y: sigY, width: imgDims.width, height: imgDims.height });
 
-      // Print name, date, and booking ID below signature
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
       page.drawText(`${full_name}  ·  ${dateStr}  ·  Booking #${id}`, {
@@ -160,7 +173,6 @@ app.post('/api/bookings/:id/sign', async (req, res) => {
       pdfPath = `signed-contracts/${id}.pdf`;
     } catch (err) {
       console.error('PDF stamping failed:', err.message);
-      // Non-fatal — still record the agreement
     }
   }
 
@@ -176,6 +188,112 @@ app.post('/api/bookings/:id/sign', async (req, res) => {
   notify('contract_signed', updated, { contract_url: contractUrl });
 
   res.json({ ok: true, signed_at: now, pdf_path: pdfPath });
+});
+
+// ── Admin routes (require ADMIN_SECRET bearer token) ──────────────────────────
+
+// Stats: counts + next upcoming bookings for the Overview panel
+app.get('/api/admin/stats', requireAdmin, (req, res) => {
+  const now = new Date().toISOString().slice(0, 10);
+  const monthEnd = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+
+  const counts = db.prepare(`
+    SELECT
+      COUNT(*) FILTER (WHERE session_date >= ? AND session_date <= ? AND status != 'cancelled') AS upcoming,
+      COUNT(*) FILTER (WHERE payment_status = 'pending_confirmation') AS pending_payment,
+      COUNT(*) FILTER (WHERE payment_status = 'confirmed') AS confirmed_payment,
+      COUNT(*) FILTER (WHERE session_length = 'mini' AND payment_status = 'confirmed') AS confirmed_mini,
+      COUNT(*) FILTER (WHERE session_length = 'full' AND payment_status = 'confirmed') AS confirmed_full
+    FROM bookings
+  `).get(now, monthEnd);
+
+  const nextUp = db.prepare(`
+    SELECT id, client_name, client_email, session_date, session_type, session_length,
+           location, payment_status, status, contract_signed_at
+    FROM bookings
+    WHERE session_date >= ? AND status != 'cancelled'
+    ORDER BY session_date ASC LIMIT 5
+  `).all(now);
+
+  res.json({ ...counts, nextUpcoming: nextUp });
+});
+
+// List bookings with optional filters
+app.get('/api/admin/bookings', requireAdmin, (req, res) => {
+  const { status, payment_status, from, to, search, sort = 'session_date', dir = 'asc' } = req.query;
+  const allowed = ['session_date', 'created_at', 'client_name', 'payment_status', 'status'];
+  const sortCol = allowed.includes(sort) ? sort : 'session_date';
+  const sortDir = dir === 'desc' ? 'DESC' : 'ASC';
+
+  const conditions = [];
+  const params = [];
+
+  if (status) { conditions.push('status = ?'); params.push(status); }
+  if (payment_status) { conditions.push('payment_status = ?'); params.push(payment_status); }
+  if (from) { conditions.push('session_date >= ?'); params.push(from); }
+  if (to) { conditions.push('session_date <= ?'); params.push(to); }
+  if (search) {
+    conditions.push('(client_name LIKE ? OR client_email LIKE ?)');
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const bookings = db.prepare(
+    `SELECT * FROM bookings ${where} ORDER BY ${sortCol} ${sortDir}`
+  ).all(...params);
+
+  res.json(bookings);
+});
+
+// Single booking
+app.get('/api/admin/bookings/:id', requireAdmin, (req, res) => {
+  const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(parseInt(req.params.id, 10));
+  if (!booking) return res.status(404).json({ error: 'Not found' });
+  res.json(booking);
+});
+
+// Update booking fields — payment confirm triggers n8n webhook
+app.patch('/api/admin/bookings/:id', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
+  if (!booking) return res.status(404).json({ error: 'Not found' });
+
+  const allowed = ['payment_status', 'status', 'notes', 'session_date', 'location'];
+  const updates = {};
+  for (const key of allowed) {
+    if (key in req.body) updates[key] = req.body[key];
+  }
+  if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No valid fields' });
+
+  const setClauses = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+  db.prepare(`UPDATE bookings SET ${setClauses} WHERE id = ?`).run(...Object.values(updates), id);
+
+  const updated = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
+
+  if (updates.payment_status === 'confirmed' && booking.payment_status !== 'confirmed') {
+    notify('payment_confirmed', updated);
+  }
+
+  res.json(updated);
+});
+
+// CSV export of all bookings
+app.get('/api/admin/payments/export', requireAdmin, (req, res) => {
+  const bookings = db.prepare('SELECT * FROM bookings ORDER BY session_date ASC').all();
+
+  const cols = ['id', 'created_at', 'client_name', 'client_email', 'client_phone',
+                'session_date', 'session_type', 'session_length', 'location',
+                'contract_signed_at', 'payment_status', 'payment_notified_at', 'status', 'notes'];
+
+  const escape = v => v == null ? '' : `"${String(v).replace(/"/g, '""')}"`;
+  const header = cols.join(',');
+  const rows = bookings.map(b => cols.map(c => escape(b[c])).join(','));
+  const csv = [header, ...rows].join('\r\n');
+
+  const date = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="lisilou-bookings-${date}.csv"`);
+  res.send(csv);
 });
 
 app.listen(PORT, () => console.log(`API listening on port ${PORT}`));

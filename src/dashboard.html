@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LisiLou Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Nunito+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #B06A7A;
+  --accent: #E8C4CC;
+  --bg: #FEF9FA;
+  --text: #2C2C2C;
+  --text-muted: #888;
+  --border: #EDD8DC;
+  --sidebar-w: 200px;
+  --header-h: 56px;
+  --green: #4CAF80;
+  --yellow: #E8A838;
+  --red: #D05050;
+  --blue: #3D95CE;
+}
+
+body { font-family: 'Nunito Sans', sans-serif; color: var(--text); background: var(--bg); min-height: 100vh; }
+
+/* ── Login ─────────────────────────────────────────── */
+#login-screen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; background: var(--bg);
+}
+.login-card {
+  width: 340px; padding: 2.5rem;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(176,106,122,.08);
+  text-align: center;
+}
+.login-card h1 { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 1.8rem; color: var(--primary); margin-bottom: .25rem; }
+.login-card p { color: var(--text-muted); font-size: .85rem; margin-bottom: 1.5rem; }
+.login-card input {
+  width: 100%; padding: .65rem .9rem; margin-bottom: .75rem;
+  border: 1px solid var(--border); border-radius: 4px;
+  font-family: inherit; font-size: .95rem; color: var(--text); background: var(--bg);
+  outline: none;
+}
+.login-card input:focus { border-color: var(--primary); }
+.login-error { color: var(--red); font-size: .8rem; margin-bottom: .75rem; display: none; }
+
+/* ── App shell ─────────────────────────────────────── */
+#app { display: none; flex-direction: column; min-height: 100vh; }
+
+header {
+  height: var(--header-h); background: #fff; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 1.5rem; position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+}
+header .brand { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 1.3rem; color: var(--primary); }
+header .user { display: flex; align-items: center; gap: .75rem; font-size: .85rem; color: var(--text-muted); }
+
+.layout { display: flex; padding-top: var(--header-h); min-height: 100vh; }
+
+nav {
+  width: var(--sidebar-w); background: #fff; border-right: 1px solid var(--border);
+  padding: 1.25rem 0; position: fixed; top: var(--header-h); bottom: 0; overflow-y: auto;
+}
+nav a {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .65rem 1.25rem; font-size: .9rem; color: var(--text-muted);
+  text-decoration: none; border-left: 3px solid transparent; transition: all .15s;
+  cursor: pointer;
+}
+nav a:hover { color: var(--primary); background: var(--bg); }
+nav a.active { color: var(--primary); border-left-color: var(--primary); background: var(--bg); font-weight: 600; }
+nav a .badge {
+  margin-left: auto; background: var(--primary); color: #fff;
+  font-size: .7rem; font-weight: 600; padding: .1rem .4rem; border-radius: 999px;
+}
+
+main { margin-left: var(--sidebar-w); flex: 1; padding: 2rem; min-width: 0; }
+
+/* ── Shared components ─────────────────────────────── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+h2.panel-title { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 1.8rem; color: var(--primary); margin-bottom: 1.25rem; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.stat-card {
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  padding: 1.1rem 1.25rem;
+}
+.stat-card .label { font-size: .78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem; }
+.stat-card .value { font-size: 2rem; font-weight: 300; color: var(--primary); line-height: 1; }
+.stat-card .sub { font-size: .78rem; color: var(--text-muted); margin-top: .25rem; }
+.stat-card.alert .value { color: var(--yellow); }
+
+.card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+.card h3 { font-size: .9rem; font-weight: 600; margin-bottom: .75rem; color: var(--text); }
+
+btn, .btn {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .45rem .9rem; border-radius: 4px; font-family: inherit; font-size: .85rem;
+  font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: opacity .15s;
+}
+.btn:hover { opacity: .85; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+.btn-sm { padding: .3rem .65rem; font-size: .78rem; }
+.btn-green { background: var(--green); color: #fff; }
+.btn-red { background: var(--red); color: #fff; }
+.btn-muted { background: #f0f0f0; color: var(--text-muted); border: 1px solid var(--border); }
+
+/* status badges */
+.badge { display: inline-block; padding: .2rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 600; }
+.badge-pending { background: #FFF3CD; color: #856404; }
+.badge-pending_confirmation { background: #FFF0D0; color: #9B6C00; }
+.badge-confirmed { background: #D1F2E4; color: #1A7048; }
+.badge-refunded { background: #E8E8E8; color: #555; }
+.badge-cancelled { background: #FDDEDE; color: #882222; }
+.badge-signed { background: #D1F2E4; color: #1A7048; }
+.badge-unsigned { background: #F5F5F5; color: #888; }
+
+/* ── Filter bar ────────────────────────────────────── */
+.filter-bar { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+.filter-bar input, .filter-bar select {
+  padding: .45rem .75rem; border: 1px solid var(--border); border-radius: 4px;
+  font-family: inherit; font-size: .85rem; color: var(--text); background: var(--bg);
+  outline: none;
+}
+.filter-bar input:focus, .filter-bar select:focus { border-color: var(--primary); }
+.filter-bar input[type="search"] { min-width: 200px; }
+
+/* ── Table ─────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+th {
+  padding: .65rem 1rem; text-align: left; font-size: .75rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted);
+  border-bottom: 1px solid var(--border); background: var(--bg);
+  cursor: pointer; white-space: nowrap; user-select: none;
+}
+th:hover { color: var(--primary); }
+th .sort-icon { opacity: .4; }
+th.sorted .sort-icon { opacity: 1; color: var(--primary); }
+td { padding: .65rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr.expandable { cursor: pointer; }
+tr.expandable:hover td { background: var(--bg); }
+tr.expanded td { background: var(--bg); }
+.expand-row td { padding: 0; }
+.expand-inner { padding: 1.25rem 1rem; border-top: 1px solid var(--border); }
+.empty-state { padding: 3rem; text-align: center; color: var(--text-muted); }
+
+/* ── Booking detail / payment block ────────────────── */
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 700px) { .detail-grid { grid-template-columns: 1fr; } }
+
+.detail-section { margin-bottom: 1rem; }
+.detail-section h4 { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-bottom: .5rem; }
+.detail-row { display: flex; gap: .5rem; margin-bottom: .3rem; font-size: .87rem; }
+.detail-row .dl { color: var(--text-muted); min-width: 140px; }
+
+.payment-block {
+  background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 1rem;
+}
+.payment-block h4 { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-bottom: .75rem; }
+.payment-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+.venmo-note { font-family: monospace; font-size: .82rem; background: var(--bg); border: 1px solid var(--border); padding: .3rem .6rem; border-radius: 4px; }
+
+/* ── Calendar ──────────────────────────────────────── */
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.cal-header h3 { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 1.3rem; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-dow {
+  text-align: center; font-size: .72rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted);
+  padding: .4rem 0;
+}
+.cal-day {
+  min-height: 70px; padding: .35rem .4rem; border: 1px solid var(--border);
+  border-radius: 6px; background: #fff; font-size: .82rem;
+}
+.cal-day.other-month { background: var(--bg); color: var(--text-muted); }
+.cal-day.today { border-color: var(--primary); }
+.cal-day.has-bookings { cursor: pointer; }
+.cal-day.has-bookings:hover { border-color: var(--primary); background: var(--bg); }
+.cal-day .day-num { font-weight: 600; margin-bottom: .25rem; }
+.cal-dots { display: flex; gap: 3px; flex-wrap: wrap; }
+.cal-dot { width: 8px; height: 8px; border-radius: 50%; }
+.cal-dot.confirmed { background: var(--green); }
+.cal-dot.pending { background: var(--yellow); }
+.cal-dot.cancelled { background: var(--red); }
+
+/* Slide-out */
+.slideout-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 200; display: none; }
+.slideout-overlay.open { display: block; }
+.slideout {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 420px; max-width: 100%;
+  background: #fff; border-left: 1px solid var(--border); overflow-y: auto;
+  z-index: 201; transform: translateX(100%); transition: transform .25s ease;
+  padding: 1.5rem;
+}
+.slideout.open { transform: translateX(0); }
+.slideout-close { float: right; background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted); padding: .25rem; }
+.slideout h3 { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 1.4rem; margin-bottom: 1rem; }
+.slideout .booking-item { border: 1px solid var(--border); border-radius: 6px; padding: .75rem; margin-bottom: .75rem; }
+
+/* ── Payments panel ────────────────────────────────── */
+.revenue-summary { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.revenue-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: .9rem 1.1rem; flex: 1; min-width: 140px; }
+.revenue-card .label { font-size: .75rem; color: var(--text-muted); margin-bottom: .2rem; }
+.revenue-card .amount { font-size: 1.5rem; font-weight: 300; color: var(--primary); }
+
+/* ── Misc ──────────────────────────────────────────── */
+.loading { color: var(--text-muted); padding: 2rem; text-align: center; }
+.notes-input {
+  width: 100%; padding: .5rem .75rem; border: 1px solid var(--border); border-radius: 4px;
+  font-family: inherit; font-size: .87rem; resize: vertical; min-height: 60px; background: var(--bg);
+}
+.notes-input:focus { outline: none; border-color: var(--primary); }
+</style>
+</head>
+<body>
+
+<!-- Login screen -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>LisiLou</h1>
+    <p>Admin Dashboard</p>
+    <p class="login-error" id="login-error">Incorrect passphrase.</p>
+    <input type="password" id="login-input" placeholder="Admin passphrase" autocomplete="current-password">
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="app">
+  <header>
+    <span class="brand">LisiLou Photography &mdash; Admin</span>
+    <div class="user">
+      <span id="user-label">Photographer</span>
+      <button class="btn btn-sm btn-muted" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+  <div class="layout">
+    <nav>
+      <a onclick="showPanel('overview')" id="nav-overview" class="active">&#9632; Overview</a>
+      <a onclick="showPanel('calendar')" id="nav-calendar">&#9632; Calendar</a>
+      <a onclick="showPanel('bookings')" id="nav-bookings">&#9632; Bookings</a>
+      <a onclick="showPanel('payments')" id="nav-payments">&#9632; Payments <span class="badge" id="pending-badge" style="display:none"></span></a>
+    </nav>
+    <main>
+      <!-- Overview panel -->
+      <div class="panel active" id="panel-overview">
+        <h2 class="panel-title">Overview</h2>
+        <div class="stat-grid" id="stat-grid">
+          <div class="stat-card"><div class="label">Upcoming (30 days)</div><div class="value" id="stat-upcoming">—</div></div>
+          <div class="stat-card" id="stat-pending-card"><div class="label">Pending Payment</div><div class="value" id="stat-pending">—</div></div>
+          <div class="stat-card"><div class="label">Payments Confirmed</div><div class="value" id="stat-confirmed">—</div></div>
+          <div class="stat-card"><div class="label">Est. Revenue (confirmed)</div><div class="value" id="stat-revenue">—</div><div class="sub">mini × $<span id="p-mini">75</span> + full × $<span id="p-full">150</span></div></div>
+        </div>
+        <div class="card">
+          <h3>Next Upcoming Sessions</h3>
+          <div id="next-up-list"><div class="loading">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- Calendar panel -->
+      <div class="panel" id="panel-calendar">
+        <h2 class="panel-title">Calendar</h2>
+        <div class="card">
+          <div class="cal-header">
+            <button class="btn btn-sm btn-muted" onclick="calNav(-1)">&#8249; Prev</button>
+            <h3 id="cal-month-label"></h3>
+            <button class="btn btn-sm btn-muted" onclick="calNav(1)">Next &#8250;</button>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <div style="display:flex;gap:1rem;margin-top:.75rem;font-size:.78rem;color:var(--text-muted);">
+            <span><span class="cal-dot confirmed" style="display:inline-block;"></span> Confirmed</span>
+            <span><span class="cal-dot pending" style="display:inline-block;"></span> Pending</span>
+            <span><span class="cal-dot cancelled" style="display:inline-block;"></span> Cancelled</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bookings panel -->
+      <div class="panel" id="panel-bookings">
+        <h2 class="panel-title">Bookings</h2>
+        <div class="filter-bar">
+          <input type="search" id="b-search" placeholder="Search name / email" oninput="debouncedLoadBookings()">
+          <select id="b-payment" onchange="loadBookings()">
+            <option value="">All payments</option>
+            <option value="pending">Pending</option>
+            <option value="pending_confirmation">Awaiting Confirm</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="refunded">Refunded</option>
+          </select>
+          <select id="b-status" onchange="loadBookings()">
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <input type="date" id="b-from" onchange="loadBookings()" placeholder="From">
+          <input type="date" id="b-to" onchange="loadBookings()" placeholder="To">
+          <button class="btn btn-sm btn-muted" onclick="clearFilters()">Clear</button>
+        </div>
+        <div id="bookings-table-wrap"></div>
+      </div>
+
+      <!-- Payments panel -->
+      <div class="panel" id="panel-payments">
+        <h2 class="panel-title">Payments</h2>
+        <div class="revenue-summary" id="revenue-summary"></div>
+        <div class="filter-bar">
+          <select id="p-filter" onchange="loadPaymentsPanel()">
+            <option value="">All payments</option>
+            <option value="pending_confirmation">Awaiting Confirm</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="refunded">Refunded</option>
+          </select>
+          <button class="btn btn-sm btn-outline" onclick="exportCSV()">&#8595; Export CSV</button>
+        </div>
+        <div id="payments-table-wrap"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Calendar slide-out -->
+<div class="slideout-overlay" id="slideout-overlay" onclick="closeSlideout()"></div>
+<div class="slideout" id="slideout">
+  <button class="slideout-close" onclick="closeSlideout()">&#10005;</button>
+  <h3 id="slideout-date"></h3>
+  <div id="slideout-body"></div>
+</div>
+
+<script>
+// ── Config & state ────────────────────────────────────────────────────────────
+let TOKEN = sessionStorage.getItem('admin_token') || '';
+let siteConfig = {};
+let allBookings = [];
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let bookingsSortCol = 'session_date';
+let bookingsSortDir = 'asc';
+let _debounceTimer = null;
+
+const MINI_PRICE_DEFAULT = 75;
+const FULL_PRICE_DEFAULT = 150;
+function miniPrice() { return siteConfig?.booking?.pricing?.mini || MINI_PRICE_DEFAULT; }
+function fullPrice() { return siteConfig?.booking?.pricing?.full || FULL_PRICE_DEFAULT; }
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+(async function init() {
+  // Load site config for theme + pricing
+  try {
+    const r = await fetch('/config/site.json');
+    siteConfig = await r.json();
+    applyTheme(siteConfig.theme || {});
+    document.getElementById('p-mini').textContent = miniPrice();
+    document.getElementById('p-full').textContent = fullPrice();
+  } catch(e) { /* non-fatal */ }
+
+  if (TOKEN) {
+    const ok = await verifyToken();
+    if (ok) showApp();
+  }
+})();
+
+function applyTheme(t) {
+  const r = document.documentElement.style;
+  if (t.primaryColor)     r.setProperty('--primary', t.primaryColor);
+  if (t.accentColor)      r.setProperty('--accent', t.accentColor);
+  if (t.backgroundColor)  r.setProperty('--bg', t.backgroundColor);
+  if (t.textColor)        r.setProperty('--text', t.textColor);
+  if (t.accentColor) {
+    r.setProperty('--border', t.accentColor);
+    r.setProperty('--accent', t.accentColor);
+  }
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+document.getElementById('login-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogin() {
+  const pw = document.getElementById('login-input').value.trim();
+  if (!pw) return;
+  TOKEN = pw;
+  const ok = await verifyToken();
+  if (ok) {
+    sessionStorage.setItem('admin_token', TOKEN);
+    document.getElementById('login-error').style.display = 'none';
+    showApp();
+  } else {
+    TOKEN = '';
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+
+async function verifyToken() {
+  try {
+    const r = await api('GET', '/api/admin/stats');
+    return r.ok;
+  } catch(e) { return false; }
+}
+
+function doLogout() {
+  TOKEN = '';
+  sessionStorage.removeItem('admin_token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-input').value = '';
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  showPanel('overview');
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+async function api(method, url, body) {
+  const opts = {
+    method,
+    headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  if (r.status === 401) { doLogout(); throw new Error('Unauthorized'); }
+  return { ok: r.ok, status: r.status, data: r.headers.get('content-type')?.includes('json') ? await r.json() : await r.text() };
+}
+
+// ── Panel navigation ──────────────────────────────────────────────────────────
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+
+  if (name === 'overview')  loadOverview();
+  if (name === 'calendar')  renderCalendar();
+  if (name === 'bookings')  loadBookings();
+  if (name === 'payments')  loadPaymentsPanel();
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+async function loadOverview() {
+  const r = await api('GET', '/api/admin/stats');
+  if (!r.ok) return;
+  const d = r.data;
+
+  document.getElementById('stat-upcoming').textContent = d.upcoming ?? '—';
+  document.getElementById('stat-pending').textContent = d.pending_payment ?? '—';
+  document.getElementById('stat-confirmed').textContent = d.confirmed_payment ?? '—';
+
+  // Revenue from confirmed bookings using config pricing
+  const rev = (d.confirmed_mini || 0) * miniPrice() + (d.confirmed_full || 0) * fullPrice();
+  document.getElementById('stat-revenue').textContent = '$' + rev.toLocaleString();
+
+  if ((d.pending_payment || 0) > 0) {
+    document.getElementById('stat-pending-card').classList.add('alert');
+    const badge = document.getElementById('pending-badge');
+    badge.textContent = d.pending_payment;
+    badge.style.display = '';
+  }
+
+  const list = document.getElementById('next-up-list');
+  if (!d.nextUpcoming?.length) {
+    list.innerHTML = '<p style="color:var(--text-muted);font-size:.87rem;">No upcoming sessions.</p>';
+    return;
+  }
+  list.innerHTML = d.nextUpcoming.map(b => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-weight:600;">${esc(b.client_name)}</div>
+        <div style="font-size:.8rem;color:var(--text-muted);">${b.session_date} &middot; ${esc(b.session_type)} &middot; ${esc(b.location || '—')}</div>
+      </div>
+      <span class="badge badge-${b.payment_status}">${payLabel(b.payment_status)}</span>
+    </div>
+  `).join('');
+}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+async function renderCalendar() {
+  const r = await api('GET', '/api/admin/bookings');
+  if (!r.ok) return;
+  allBookings = r.data;
+
+  const label = document.getElementById('cal-month-label');
+  const grid = document.getElementById('cal-grid');
+  const date = new Date(calYear, calMonth, 1);
+  label.textContent = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  const firstDay = date.getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Group bookings by date
+  const byDate = {};
+  for (const b of allBookings) {
+    if (!byDate[b.session_date]) byDate[b.session_date] = [];
+    byDate[b.session_date].push(b);
+  }
+
+  // Padding days from previous month
+  for (let i = 0; i < firstDay; i++) {
+    html += '<div class="cal-day other-month"></div>';
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const bookings = byDate[dateStr] || [];
+    const isToday = dateStr === today;
+    const dots = bookings.map(b => {
+      const cls = b.payment_status === 'confirmed' ? 'confirmed' : b.status === 'cancelled' ? 'cancelled' : 'pending';
+      return `<span class="cal-dot ${cls}"></span>`;
+    }).join('');
+    const hasB = bookings.length > 0;
+    html += `<div class="cal-day${isToday?' today':''}${hasB?' has-bookings':''}"
+      ${hasB ? `onclick="openSlideout('${dateStr}')"` : ''}>
+      <div class="day-num">${d}</div>
+      <div class="cal-dots">${dots}</div>
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function calNav(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+function openSlideout(dateStr) {
+  const bookings = allBookings.filter(b => b.session_date === dateStr);
+  document.getElementById('slideout-date').textContent = new Date(dateStr + 'T12:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  document.getElementById('slideout-body').innerHTML = bookings.map(b => `
+    <div class="booking-item">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+        <strong>${esc(b.client_name)}</strong>
+        <span class="badge badge-${b.payment_status}">${payLabel(b.payment_status)}</span>
+      </div>
+      <div style="font-size:.82rem;color:var(--text-muted);">${esc(b.session_type)} &middot; ${esc(b.session_length)} &middot; ${esc(b.location||'')}</div>
+      <div style="font-size:.82rem;color:var(--text-muted);">${esc(b.client_email)}</div>
+      ${b.contract_signed_at ? '<span class="badge badge-signed" style="margin-top:.4rem;">Contract signed</span>' : '<span class="badge badge-unsigned" style="margin-top:.4rem;">Unsigned</span>'}
+    </div>
+  `).join('');
+  document.getElementById('slideout-overlay').classList.add('open');
+  document.getElementById('slideout').classList.add('open');
+}
+
+function closeSlideout() {
+  document.getElementById('slideout-overlay').classList.remove('open');
+  document.getElementById('slideout').classList.remove('open');
+}
+
+// ── Bookings ──────────────────────────────────────────────────────────────────
+function debouncedLoadBookings() {
+  clearTimeout(_debounceTimer);
+  _debounceTimer = setTimeout(loadBookings, 300);
+}
+
+function clearFilters() {
+  document.getElementById('b-search').value = '';
+  document.getElementById('b-payment').value = '';
+  document.getElementById('b-status').value = '';
+  document.getElementById('b-from').value = '';
+  document.getElementById('b-to').value = '';
+  loadBookings();
+}
+
+async function loadBookings() {
+  const params = new URLSearchParams();
+  const search = document.getElementById('b-search').value.trim();
+  const payment = document.getElementById('b-payment').value;
+  const status  = document.getElementById('b-status').value;
+  const from    = document.getElementById('b-from').value;
+  const to      = document.getElementById('b-to').value;
+  if (search)  params.set('search', search);
+  if (payment) params.set('payment_status', payment);
+  if (status)  params.set('status', status);
+  if (from)    params.set('from', from);
+  if (to)      params.set('to', to);
+  params.set('sort', bookingsSortCol);
+  params.set('dir', bookingsSortDir);
+
+  const r = await api('GET', '/api/admin/bookings?' + params);
+  if (!r.ok) return;
+  renderBookingsTable(r.data);
+}
+
+function sortBookings(col) {
+  if (bookingsSortCol === col) {
+    bookingsSortDir = bookingsSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    bookingsSortCol = col;
+    bookingsSortDir = 'asc';
+  }
+  loadBookings();
+}
+
+function sortIcon(col) {
+  if (bookingsSortCol !== col) return '<span class="sort-icon">&#8597;</span>';
+  return bookingsSortDir === 'asc'
+    ? '<span class="sort-icon">&#8593;</span>'
+    : '<span class="sort-icon">&#8595;</span>';
+}
+
+function renderBookingsTable(bookings) {
+  const wrap = document.getElementById('bookings-table-wrap');
+  if (!bookings.length) {
+    wrap.innerHTML = '<div class="empty-state">No bookings match your filters.</div>';
+    return;
+  }
+
+  const cols = [
+    { key: 'client_name', label: 'Client' },
+    { key: 'session_date', label: 'Date' },
+    { key: 'session_type', label: 'Type' },
+    { key: 'session_length', label: 'Length' },
+    { key: 'location', label: 'Location' },
+    { key: null, label: 'Contract' },
+    { key: 'payment_status', label: 'Payment' },
+    { key: null, label: '' },
+  ];
+
+  const thead = `<tr>${cols.map(c => `<th ${c.key ? `onclick="sortBookings('${c.key}')" class="${bookingsSortCol===c.key?'sorted':''}"` : ''}>${c.label}${c.key ? sortIcon(c.key) : ''}</th>`).join('')}</tr>`;
+
+  const tbody = bookings.map(b => {
+    const contractBadge = b.contract_signed_at
+      ? '<span class="badge badge-signed">Signed</span>'
+      : '<span class="badge badge-unsigned">Unsigned</span>';
+    return `
+      <tr class="expandable" onclick="toggleRow(${b.id})">
+        <td><strong>${esc(b.client_name)}</strong><br><small style="color:var(--text-muted)">${esc(b.client_email)}</small></td>
+        <td>${b.session_date}</td>
+        <td>${esc(b.session_type)}</td>
+        <td>${b.session_length === 'mini' ? 'Mini' : 'Full'}</td>
+        <td>${esc(b.location||'—')}</td>
+        <td>${contractBadge}</td>
+        <td><span class="badge badge-${b.payment_status}">${payLabel(b.payment_status)}</span></td>
+        <td><span style="font-size:.9rem;color:var(--text-muted);">&#8250;</span></td>
+      </tr>
+      <tr class="expand-row" id="expand-${b.id}" style="display:none">
+        <td colspan="8">
+          <div class="expand-inner" id="expand-inner-${b.id}"></div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+}
+
+let openRow = null;
+function toggleRow(id) {
+  if (openRow === id) {
+    closeRow(id);
+    openRow = null;
+    return;
+  }
+  if (openRow !== null) closeRow(openRow);
+  openRow = id;
+  const row = document.getElementById('expand-' + id);
+  const inner = document.getElementById('expand-inner-' + id);
+  row.style.display = '';
+  row.previousElementSibling.classList.add('expanded');
+  loadBookingDetail(id, inner);
+}
+
+function closeRow(id) {
+  const row = document.getElementById('expand-' + id);
+  if (row) {
+    row.style.display = 'none';
+    row.previousElementSibling.classList.remove('expanded');
+  }
+}
+
+async function loadBookingDetail(id, container) {
+  const r = await api('GET', '/api/admin/bookings/' + id);
+  if (!r.ok) { container.innerHTML = '<p style="color:red">Failed to load.</p>'; return; }
+  const b = r.data;
+  const price = b.session_length === 'mini' ? miniPrice() : fullPrice();
+  const venmoNote = (b.session_type || 'Session') + ' - ' + (b.client_name || '');
+  const contractLink = b.contract_pdf_path
+    ? `<a href="/api/bookings/${b.id}/contract" target="_blank" class="btn btn-sm btn-outline">&#8595; PDF</a>`
+    : '<span style="color:var(--text-muted);font-size:.8rem;">No PDF</span>';
+
+  container.innerHTML = `
+    <div class="detail-grid">
+      <div>
+        <div class="detail-section">
+          <h4>Client</h4>
+          <div class="detail-row"><span class="dl">Name</span> ${esc(b.client_name)}</div>
+          <div class="detail-row"><span class="dl">Email</span> ${esc(b.client_email)}</div>
+          <div class="detail-row"><span class="dl">Phone</span> ${esc(b.client_phone||'—')}</div>
+        </div>
+        <div class="detail-section">
+          <h4>Session</h4>
+          <div class="detail-row"><span class="dl">Date</span> ${b.session_date}</div>
+          <div class="detail-row"><span class="dl">Type</span> ${esc(b.session_type)}</div>
+          <div class="detail-row"><span class="dl">Length</span> ${b.session_length === 'mini' ? 'Mini (30 min)' : 'Full (60 min)'}</div>
+          <div class="detail-row"><span class="dl">Location</span> ${esc(b.location||'—')}</div>
+        </div>
+        <div class="detail-section">
+          <h4>Contract</h4>
+          <div class="detail-row"><span class="dl">Status</span> ${b.contract_signed_at ? 'Signed ' + fmtDate(b.contract_signed_at) : 'Not signed'}</div>
+          <div class="detail-row"><span class="dl">PDF</span> ${contractLink}</div>
+        </div>
+        <div class="detail-section">
+          <h4>Notes</h4>
+          <textarea class="notes-input" id="notes-${b.id}" placeholder="Add notes…">${esc(b.notes||'')}</textarea>
+          <button class="btn btn-sm btn-muted" style="margin-top:.4rem;" onclick="saveNotes(${b.id})">Save Notes</button>
+        </div>
+      </div>
+      <div>
+        <div class="payment-block" id="payment-block-${b.id}">
+          <h4>Payment</h4>
+          <div class="detail-row"><span class="dl">Status</span> <span class="badge badge-${b.payment_status}" id="pay-status-badge-${b.id}">${payLabel(b.payment_status)}</span></div>
+          <div class="detail-row"><span class="dl">Price</span> $${price}</div>
+          <div class="detail-row"><span class="dl">Venmo note</span> <span class="venmo-note">${esc(venmoNote)}</span></div>
+          ${b.payment_notified_at ? `<div class="detail-row"><span class="dl">Client sent</span> ${fmtDate(b.payment_notified_at)}</div>` : ''}
+          <div class="payment-actions">
+            ${b.payment_status !== 'confirmed' ? `<button class="btn btn-sm btn-green" onclick="confirmPayment(${b.id})">&#10003; Confirm Payment</button>` : ''}
+            ${b.payment_status !== 'refunded' ? `<button class="btn btn-sm btn-red" onclick="markRefunded(${b.id})">Refunded</button>` : ''}
+            <a href="https://venmo.com/${siteConfig?.booking?.venmoUsername||''}" target="_blank" class="btn btn-sm btn-muted">Open Venmo</a>
+          </div>
+        </div>
+        <div style="margin-top:.75rem;font-size:.78rem;color:var(--text-muted);">
+          <div>Booking created: ${fmtDate(b.created_at)}</div>
+          <div>Booking #${b.id}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function saveNotes(id) {
+  const notes = document.getElementById('notes-' + id).value;
+  await api('PATCH', '/api/admin/bookings/' + id, { notes });
+}
+
+async function confirmPayment(id) {
+  const r = await api('PATCH', '/api/admin/bookings/' + id, { payment_status: 'confirmed' });
+  if (r.ok) {
+    await loadBookings();
+    await loadOverview();
+  }
+}
+
+async function markRefunded(id) {
+  const r = await api('PATCH', '/api/admin/bookings/' + id, { payment_status: 'refunded' });
+  if (r.ok) {
+    await loadBookings();
+  }
+}
+
+// ── Payments panel ────────────────────────────────────────────────────────────
+async function loadPaymentsPanel() {
+  const filter = document.getElementById('p-filter').value;
+  const params = filter ? '?payment_status=' + filter : '';
+  const r = await api('GET', '/api/admin/bookings' + params);
+  if (!r.ok) return;
+  const bookings = r.data;
+
+  // Revenue summary
+  const pending = bookings.filter(b => b.payment_status === 'pending_confirmation').length;
+  const confirmed = bookings.filter(b => b.payment_status === 'confirmed');
+  const revenue = confirmed.reduce((s, b) => s + (b.session_length === 'mini' ? miniPrice() : fullPrice()), 0);
+
+  document.getElementById('revenue-summary').innerHTML = `
+    <div class="revenue-card"><div class="label">Awaiting Confirmation</div><div class="amount">${pending}</div></div>
+    <div class="revenue-card"><div class="label">Confirmed Payments</div><div class="amount">${confirmed.length}</div></div>
+    <div class="revenue-card"><div class="label">Confirmed Revenue</div><div class="amount">$${revenue.toLocaleString()}</div></div>
+  `;
+
+  if (!bookings.length) {
+    document.getElementById('payments-table-wrap').innerHTML = '<div class="empty-state">No payments.</div>';
+    return;
+  }
+
+  const rows = bookings.map(b => {
+    const price = b.session_length === 'mini' ? miniPrice() : fullPrice();
+    return `<tr>
+      <td><strong>${esc(b.client_name)}</strong><br><small style="color:var(--text-muted)">${esc(b.client_email)}</small></td>
+      <td>${b.session_date}</td>
+      <td>${esc(b.session_type)}</td>
+      <td>$${price}</td>
+      <td><span class="badge badge-${b.payment_status}">${payLabel(b.payment_status)}</span></td>
+      <td>${b.payment_notified_at ? fmtDate(b.payment_notified_at) : '—'}</td>
+      <td>
+        ${b.payment_status === 'pending_confirmation' ? `<button class="btn btn-sm btn-green" onclick="confirmPaymentP(${b.id}, this)">&#10003; Confirm</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('payments-table-wrap').innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Client</th><th>Date</th><th>Type</th><th>Price</th>
+          <th>Payment</th><th>Client Sent</th><th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+async function confirmPaymentP(id, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  const r = await api('PATCH', '/api/admin/bookings/' + id, { payment_status: 'confirmed' });
+  if (r.ok) { await loadPaymentsPanel(); await loadOverview(); }
+}
+
+async function exportCSV() {
+  const r = await fetch('/api/admin/payments/export', {
+    headers: { 'Authorization': 'Bearer ' + TOKEN }
+  });
+  if (!r.ok) { alert('Export failed'); return; }
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'lisilou-bookings-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function payLabel(s) {
+  const labels = { pending: 'Pending', pending_confirmation: 'Awaiting Confirm', confirmed: 'Confirmed', refunded: 'Refunded', cancelled: 'Cancelled' };
+  return labels[s] || s || '—';
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch(e) { return iso; }
+}
+</script>
+</body>
+</html>
