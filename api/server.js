@@ -14,6 +14,23 @@ const SIGNED_DIR = path.join(__dirname, 'signed-contracts');
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 
+// Fire-and-forget webhook to n8n — failures are logged but never block the booking flow
+function notify(event, booking, extra = {}) {
+  const url = process.env.N8N_WEBHOOK_URL;
+  if (!url) return;
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      event,
+      booking,
+      photographer_email: process.env.PHOTOGRAPHER_EMAIL || 'hello@lisilou.com',
+      site_url: process.env.SITE_URL || '',
+      ...extra,
+    }),
+  }).catch(e => console.error(`[notify] ${event} failed:`, e.message));
+}
+
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
@@ -27,6 +44,22 @@ app.get('/api/contracts/template', (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Cache-Control', 'no-store');
   res.sendFile(contractPath);
+});
+
+// Serve a signed contract PDF (used by n8n email workflow)
+app.get('/api/bookings/:id/contract', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const booking = db.prepare('SELECT contract_pdf_path FROM bookings WHERE id = ?').get(id);
+  if (!booking || !booking.contract_pdf_path) {
+    return res.status(404).json({ error: 'Signed contract not found' });
+  }
+  const pdfPath = path.join(__dirname, booking.contract_pdf_path);
+  if (!fs.existsSync(pdfPath)) {
+    return res.status(404).json({ error: 'Contract file missing on disk' });
+  }
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="contract-booking-${id}.pdf"`);
+  res.sendFile(pdfPath);
 });
 
 app.post('/api/bookings', (req, res) => {
@@ -49,6 +82,9 @@ app.post('/api/bookings', (req, res) => {
     session_date, session_type, session_length, location,
     payment_status || 'pending',
   );
+
+  const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(result.lastInsertRowid);
+  notify('booking_created', booking);
 
   res.status(201).json({ id: result.lastInsertRowid });
 });
@@ -133,16 +169,11 @@ app.post('/api/bookings/:id/sign', async (req, res) => {
     UPDATE bookings SET contract_signed_at = ?, contract_pdf_path = ? WHERE id = ?
   `).run(now, pdfPath, id);
 
-  // Fire n8n webhook asynchronously if configured
-  const webhookUrl = process.env.N8N_WEBHOOK_URL;
-  if (webhookUrl) {
-    const record = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
-    fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event: 'contract_signed', booking: record }),
-    }).catch(e => console.error('n8n webhook error:', e.message));
-  }
+  const updated = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
+  const contractUrl = pdfPath
+    ? `${process.env.SITE_URL || ''}/api/bookings/${id}/contract`
+    : null;
+  notify('contract_signed', updated, { contract_url: contractUrl });
 
   res.json({ ok: true, signed_at: now, pdf_path: pdfPath });
 });
