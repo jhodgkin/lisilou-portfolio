@@ -34,3 +34,6 @@ docker-compose.override.yml
 api/data/*.db
 api/signed-contracts/*.pdf
 api/.env
+test-results/
+playwright-report/
+node_modules/

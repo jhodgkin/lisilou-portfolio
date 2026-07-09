@@ -1,0 +1,25 @@
+{
+  "name": "lisilou-portfolio",
+  "version": "1.0.0",
+  "description": "A lightweight, configurable photography portfolio website designed to integrate with Immich for image hosting and client gallery access.",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jhodgkin/lisilou-portfolio.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jhodgkin/lisilou-portfolio/issues"
+  },
+  "homepage": "https://github.com/jhodgkin/lisilou-portfolio#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}
