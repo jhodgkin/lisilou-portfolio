@@ -118,10 +118,10 @@
     }
   },
   "theme": {
-    "primaryColor": "#8B7355",
-    "accentColor": "#D4C5B5",
+    "primaryColor": "#B06A7A",
+    "accentColor": "#E8C4CC",
     "textColor": "#2C2C2C",
-    "backgroundColor": "#FDFBF9",
+    "backgroundColor": "#FEF9FA",
     "fontDisplay": "Cormorant Garamond",
     "fontBody": "Nunito Sans"
   }
