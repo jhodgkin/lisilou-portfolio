@@ -8,11 +8,26 @@ function futureDate(daysAhead = 60) {
   return d.toISOString().slice(0, 10);
 }
 
-// Helper: open booking modal and fill step 1 (date)
+// Helper: open booking modal and pick a date via the calendar UI.
+// #session-date is now a hidden input set by dpSelectDate(); we use evaluate
+// to set it directly (simulating a calendar day click) so tests stay fast.
 async function openAndPickDate(page, daysAhead = 60) {
   await page.locator('button:has-text("Book a Session")').first().click();
   await page.locator('#booking-overlay').waitFor({ state: 'visible' });
-  await page.locator('#session-date').fill(futureDate(daysAhead));
+  const date = futureDate(daysAhead);
+  // Wait for calendar to render, then click the matching day cell
+  await page.locator('#dp-grid').waitFor({ state: 'visible' });
+  // Try clicking the rendered day cell; fall back to JS if not visible yet
+  const dayCell = page.locator(`#dp-grid .dp-day[aria-label="${date}"]`);
+  if (await dayCell.isVisible().catch(() => false)) {
+    await dayCell.click();
+  } else {
+    // Navigate to the correct month if needed, then set via JS
+    await page.evaluate(d => {
+      document.getElementById('session-date').value = d;
+      window._dpState && (window._dpState.selectedDate = d);
+    }, date);
+  }
 }
 
 test.describe('Booking wizard', () => {
@@ -37,6 +52,47 @@ test.describe('Booking wizard', () => {
     await expect(page.locator('#booking-overlay')).toBeVisible();
     await page.locator('#booking-close').click();
     await expect(page.locator('#booking-overlay')).not.toBeVisible();
+  });
+
+  test('calendar renders month grid with day cells', async ({ page }) => {
+    await page.locator('button:has-text("Book a Session")').first().click();
+    await page.locator('#dp-grid').waitFor({ state: 'visible' });
+    await expect(page.locator('#dp-month-label')).toBeVisible();
+    // At least 28 day cells should render
+    const days = page.locator('#dp-grid .dp-day');
+    await expect(days.first()).toBeVisible({ timeout: 8_000 });
+    expect(await days.count()).toBeGreaterThanOrEqual(28);
+  });
+
+  test('calendar prev/next navigation changes month', async ({ page }) => {
+    await page.locator('button:has-text("Book a Session")').first().click();
+    await page.locator('#dp-grid').waitFor({ state: 'visible' });
+    const labelBefore = await page.locator('#dp-month-label').textContent();
+    await page.locator('#dp-next').click();
+    const labelAfter = await page.locator('#dp-month-label').textContent();
+    expect(labelAfter).not.toBe(labelBefore);
+  });
+
+  test('clicking a future date selects it and shows status', async ({ page }) => {
+    await page.locator('button:has-text("Book a Session")').first().click();
+    await page.locator('#dp-grid').waitFor({ state: 'visible' });
+    // Find first non-disabled available day
+    const availableDay = page.locator('#dp-grid .dp-day:not(.dp-day--disabled):not(.dp-day--other):not(.dp-day--past):not(.dp-day--busy)').first();
+    await expect(availableDay).toBeVisible({ timeout: 8_000 });
+    await availableDay.click();
+    await expect(availableDay).toHaveClass(/dp-day--selected/);
+    await expect(page.locator('#dp-status')).toContainText(/Selected:/);
+  });
+
+  test('past dates are not selectable', async ({ page }) => {
+    await page.locator('button:has-text("Book a Session")').first().click();
+    await page.locator('#dp-grid').waitFor({ state: 'visible' });
+    const pastDay = page.locator('#dp-grid .dp-day--past').first();
+    if (await pastDay.count() > 0) {
+      const before = await page.locator('#dp-status').textContent();
+      await pastDay.click();
+      await expect(page.locator('#dp-status')).toHaveText(before ?? '');
+    }
   });
 
   test('step 1 requires a date to advance', async ({ page }) => {

@@ -591,6 +591,73 @@
       }
     }
 
+    /* ── Date Picker Calendar ───────────────────────────── */
+    .date-picker { user-select: none; }
+
+    .dp-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .dp-month-label {
+      font-family: var(--font-display); font-size: 1.15rem; font-weight: 400;
+      color: var(--color-text);
+    }
+    .dp-nav-btn {
+      background: none; border: 1px solid var(--color-accent); border-radius: 3px;
+      width: 30px; height: 30px; cursor: pointer; font-size: 1rem;
+      color: var(--color-text-light); display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .dp-nav-btn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+    .dp-nav-btn:disabled { opacity: 0.35; cursor: default; }
+
+    .dp-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
+    }
+    .dp-dow {
+      text-align: center; font-size: 0.65rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--color-text-light); padding: 0.3rem 0 0.5rem;
+    }
+    .dp-day {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; border-radius: 50%; cursor: pointer;
+      border: 1.5px solid transparent; transition: background 0.15s, border-color 0.15s, color 0.15s;
+      color: var(--color-text);
+    }
+    .dp-day:hover:not(.dp-day--disabled):not(.dp-day--selected) {
+      border-color: var(--color-primary); color: var(--color-primary);
+    }
+    .dp-day--other  { color: var(--color-accent); cursor: default; }
+    .dp-day--past   { color: var(--color-accent); cursor: not-allowed; }
+    .dp-day--busy   {
+      color: var(--color-accent); cursor: not-allowed;
+      text-decoration: line-through; text-decoration-color: var(--color-accent);
+    }
+    .dp-day--disabled { cursor: not-allowed; }
+    .dp-day--today  { border-color: var(--color-accent); }
+    .dp-day--selected {
+      background: var(--color-primary); color: var(--color-white) !important;
+      border-color: var(--color-primary); font-weight: 600;
+    }
+    .dp-legend {
+      display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.7rem;
+      color: var(--color-text-light); flex-wrap: wrap;
+    }
+    .dp-legend-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+      vertical-align: middle; margin-right: 3px;
+    }
+    .dp-loading {
+      text-align: center; padding: 1.5rem 0; font-size: 0.82rem;
+      color: var(--color-text-light); font-style: italic;
+    }
+    .dp-status {
+      font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+    .dp-status.dp-status--ok { color: var(--color-primary); }
+
     /* ── Booking Modal ─────────────────────────────────── */
 
     .booking-overlay {
@@ -1417,11 +1484,20 @@
         <div class="step-panel" id="step-1">
           <h3 class="step-heading">Choose a Date</h3>
           <p class="step-subheading">Select an available date for your session.</p>
-          <div class="booking-field">
-            <label class="booking-label" for="session-date">Session Date</label>
-            <input type="date" class="booking-input" id="session-date">
+          <div class="date-picker" id="date-picker">
+            <div class="dp-header">
+              <button class="dp-nav-btn" id="dp-prev" aria-label="Previous month">&#8249;</button>
+              <span class="dp-month-label" id="dp-month-label"></span>
+              <button class="dp-nav-btn" id="dp-next" aria-label="Next month">&#8250;</button>
+            </div>
+            <div class="dp-grid" id="dp-grid"></div>
+            <div class="dp-legend">
+              <span><span class="dp-legend-dot" style="background:var(--color-primary)"></span>Selected</span>
+              <span><span class="dp-legend-dot" style="background:var(--color-accent)"></span>Unavailable</span>
+            </div>
+            <div class="dp-status" id="dp-status"></div>
           </div>
-          <!-- Issue #3 will replace this input with a real availability calendar -->
+          <input type="hidden" id="session-date" value="">
         </div>
 
         <!-- Step 2: Session Type — rendered from site.json by renderSessionTypeCards() -->
@@ -1815,7 +1891,167 @@
       return _origApply(config);
     }
 
-    // ── Booking Flow ──────────────────────────────────────
+    // ── Date Picker ───────────────────────────────────────
+
+    const _dpState = {
+      year: 0, month: 0,          // currently displayed month
+      selectedDate: '',            // YYYY-MM-DD
+      busyCache: {},               // "YYYY-MM" → Set of YYYY-MM-DD strings
+      loadingMonths: new Set(),    // months currently being fetched
+      calendarConfigured: null,    // null = unknown, true/false after first fetch
+    };
+
+    // Minimum selectable date: tomorrow (no same-day bookings)
+    function dpMinDate() {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function dpIsBusy(dateStr) {
+      const key = dateStr.slice(0, 7);
+      const set = _dpState.busyCache[key];
+      return set ? set.has(dateStr) : false;
+    }
+
+    function dpIsDisabled(dateStr) {
+      return dateStr < dpMinDate() || dpIsBusy(dateStr);
+    }
+
+    async function dpFetchMonth(year, month) {
+      const key = `${year}-${String(month).padStart(2, '0')}`;
+      if (_dpState.busyCache[key] !== undefined || _dpState.loadingMonths.has(key)) return;
+      _dpState.loadingMonths.add(key);
+      try {
+        const res = await fetch(`/api/availability?year=${year}&month=${month}`);
+        if (!res.ok) throw new Error(res.status);
+        const { busy, configured } = await res.json();
+        _dpState.busyCache[key] = new Set(busy);
+        if (_dpState.calendarConfigured === null) {
+          _dpState.calendarConfigured = configured;
+        }
+      } catch (e) {
+        // On error, treat month as having no busy dates (fail-open)
+        _dpState.busyCache[key] = new Set();
+      } finally {
+        _dpState.loadingMonths.delete(key);
+        // Re-render if this is the currently displayed month
+        const cur = `${_dpState.year}-${String(_dpState.month).padStart(2, '0')}`;
+        if (key === cur) dpRender();
+      }
+    }
+
+    function dpRender() {
+      const { year, month, selectedDate } = _dpState;
+      const key = `${year}-${String(month).padStart(2, '0')}`;
+      const loading = _dpState.loadingMonths.has(key);
+      const today = new Date().toISOString().slice(0, 10);
+      const minDate = dpMinDate();
+
+      // Update header
+      document.getElementById('dp-month-label').textContent =
+        new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+      // Prev button: disable if we're already at the minimum month
+      const minMonth = minDate.slice(0, 7);
+      const curMonth = key;
+      document.getElementById('dp-prev').disabled = curMonth <= minMonth;
+
+      const grid = document.getElementById('dp-grid');
+
+      if (loading) {
+        grid.innerHTML = '<div class="dp-loading" style="grid-column:1/-1">Checking availability…</div>';
+        dpUpdateStatus(selectedDate);
+        return;
+      }
+
+      const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      let html = dows.map(d => `<div class="dp-dow">${d}</div>`).join('');
+
+      const firstDay = new Date(year, month - 1, 1).getDay();
+      const daysInMonth = new Date(year, month, 0).getDate();
+
+      // Leading empty cells
+      for (let i = 0; i < firstDay; i++) {
+        html += '<div class="dp-day dp-day--other"></div>';
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const isPast     = dateStr < minDate;
+        const isBusy     = dpIsBusy(dateStr);
+        const isToday    = dateStr === today;
+        const isSelected = dateStr === selectedDate;
+        const isDisabled = isPast || isBusy;
+
+        let cls = 'dp-day';
+        if (isSelected)  cls += ' dp-day--selected';
+        else if (isBusy) cls += ' dp-day--busy dp-day--disabled';
+        else if (isPast) cls += ' dp-day--past dp-day--disabled';
+        else if (isToday) cls += ' dp-day--today';
+
+        const handler = isDisabled ? '' : `onclick="dpSelectDate('${dateStr}')"`;
+        html += `<div class="${cls}" ${handler} aria-label="${dateStr}"${isDisabled ? ' aria-disabled="true"' : ''}>${d}</div>`;
+      }
+
+      grid.innerHTML = html;
+      dpUpdateStatus(selectedDate);
+    }
+
+    function dpUpdateStatus(dateStr) {
+      const el = document.getElementById('dp-status');
+      if (!dateStr) { el.textContent = ''; el.className = 'dp-status'; return; }
+      const friendly = new Date(dateStr + 'T12:00').toLocaleDateString('en-US',
+        { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      el.textContent = 'Selected: ' + friendly;
+      el.className = 'dp-status dp-status--ok';
+    }
+
+    function dpSelectDate(dateStr) {
+      if (dpIsDisabled(dateStr)) return;
+      _dpState.selectedDate = dateStr;
+      document.getElementById('session-date').value = dateStr;
+      dpRender();
+    }
+
+    function dpNav(dir) {
+      let m = _dpState.month + dir;
+      let y = _dpState.year;
+      if (m > 12) { m = 1; y++; }
+      if (m < 1)  { m = 12; y--; }
+      _dpState.month = m;
+      _dpState.year  = y;
+      dpRender();
+      // Pre-fetch this month and the next
+      dpFetchMonth(y, m);
+      const nextM = m === 12 ? 1 : m + 1;
+      const nextY = m === 12 ? y + 1 : y;
+      dpFetchMonth(nextY, nextM);
+    }
+
+    function dpInit() {
+      const today = new Date();
+      // Open to current month, or next month if today is in the last week
+      let y = today.getFullYear();
+      let m = today.getMonth() + 1;
+      const daysLeft = new Date(y, m, 0).getDate() - today.getDate();
+      if (daysLeft < 3) { m++; if (m > 12) { m = 1; y++; } }
+
+      _dpState.year  = y;
+      _dpState.month = m;
+      _dpState.selectedDate = '';
+      document.getElementById('session-date').value = '';
+      document.getElementById('dp-prev').onclick = () => dpNav(-1);
+      document.getElementById('dp-next').onclick = () => dpNav(1);
+
+      dpRender(); // Render immediately (may show loading spinner)
+      dpFetchMonth(y, m);
+      const nextM = m === 12 ? 1 : m + 1;
+      const nextY = m === 12 ? y + 1 : y;
+      dpFetchMonth(nextY, nextM);
+    }
+
+    // ── Booking Flow ───────────────────────────────────────
 
     const BOOKING_STEPS = 7;
 
@@ -2116,8 +2352,7 @@ A complete service agreement and model release will be provided at your session 
       document.getElementById('contract-name').value = '';
       bookingState.contractScrolled = false;
       bookingState.signatureDrawn = false;
-      document.getElementById('session-date').min = new Date().toISOString().split('T')[0];
-      document.getElementById('session-date').value = '';
+      dpInit();
       renderSessionTypeCards();
       renderSessionLengthCards();
       renderLocationCards();

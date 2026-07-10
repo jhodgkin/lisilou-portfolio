@@ -62,6 +62,24 @@ test.describe('Booking API — public routes', () => {
     // Either 404 (no template uploaded) or 200 (uploaded) — both are valid; just not 500
     expect(res.status()).not.toBe(500);
   });
+
+  test('GET /api/availability returns busy array for valid month', async ({ request }) => {
+    const now = new Date();
+    const res = await request.get(`/api/availability?year=${now.getFullYear()}&month=${now.getMonth() + 1}`);
+    expect(res.status()).toBe(200);
+    const json = await res.json();
+    expect(Array.isArray(json.busy)).toBe(true);
+    expect(typeof json.configured).toBe('boolean');
+    // Each busy entry must be a valid YYYY-MM-DD string
+    for (const d of json.busy) {
+      expect(d).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  test('GET /api/availability rejects missing params', async ({ request }) => {
+    const res = await request.get('/api/availability');
+    expect(res.status()).toBe(400);
+  });
 });
 
 test.describe('Admin API — authentication', () => {

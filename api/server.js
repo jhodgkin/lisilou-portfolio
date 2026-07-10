@@ -4,6 +4,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const db = require('./db');
+const { getBusyDates } = require('./google-calendar');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -46,6 +47,25 @@ function requireAdmin(req, res, next) {
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
+});
+
+// Availability — returns busy dates for a given month from Google Calendar.
+// Gracefully returns an empty busy list when Calendar is not configured.
+app.get('/api/availability', async (req, res) => {
+  const year  = parseInt(req.query.year,  10);
+  const month = parseInt(req.query.month, 10);
+  if (!year || !month || month < 1 || month > 12) {
+    return res.status(400).json({ error: 'year and month (1-12) are required' });
+  }
+  try {
+    const result = await getBusyDates(year, month);
+    res.setHeader('Cache-Control', 'public, max-age=300'); // 5-min CDN cache
+    res.json(result);
+  } catch (err) {
+    console.error('[availability]', err.message);
+    // Don't expose internal error; return empty so the UI can still function
+    res.json({ busy: [], configured: false, error: 'calendar_unavailable' });
+  }
 });
 
 // Serve the contract template PDF to the frontend PDF.js viewer
