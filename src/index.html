@@ -685,13 +685,15 @@
       width: 100%;
       max-width: 680px;
       max-height: 90vh;
-      overflow-y: auto;
+      overflow: hidden;
       position: relative;
       display: flex;
       flex-direction: column;
       transform: translateY(20px);
       transition: transform 0.4s var(--transition-smooth);
     }
+
+    .booking-header, .booking-nav { flex-shrink: 0; }
 
     .booking-overlay.active .booking-modal {
       transform: translateY(0);
@@ -795,11 +797,12 @@
 
     .booking-step-item.active .step-label-text { color: var(--color-primary); }
 
-    /* Step panels */
+    /* Step panels — the content area scrolls; header and nav stay pinned */
     .booking-content {
       padding: 2.5rem 3rem;
       flex: 1;
-      min-height: 300px;
+      min-height: 0;
+      overflow-y: auto;
     }
 
     .step-panel { display: none; animation: stepFadeIn 0.3s var(--transition-smooth); }
@@ -1377,6 +1380,7 @@
     <nav id="main-nav">
       <a href="#portfolio">Portfolio</a>
       <a href="#client-access">Client Access</a>
+      <a href="/my-bookings">My Bookings</a>
       <a href="#connect">Connect</a>
       <button class="nav-book-btn" onclick="openBooking()">Book a Session</button>
     </nav>
@@ -1391,6 +1395,7 @@
   <div class="mobile-nav" id="mobile-nav">
     <a href="#portfolio" class="mobile-nav-link">Portfolio</a>
     <a href="#client-access" class="mobile-nav-link">Client Access</a>
+    <a href="/my-bookings" class="mobile-nav-link">My Bookings</a>
     <a href="#connect" class="mobile-nav-link">Connect</a>
     <a href="#" class="mobile-nav-link" onclick="mobileNav.classList.remove('active'); openBooking(); return false;">Book a Session</a>
   </div>
@@ -2602,6 +2607,11 @@ A complete service agreement and model release will be provided at your session 
       }, 1000);
 
       observeRevealElements();
+
+      // Deep link: /#book opens the booking wizard (used by the client portal)
+      if (window.location.hash === '#book') {
+        setTimeout(openBooking, 400);
+      }
     });
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous"></script>

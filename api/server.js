@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const db = require('./db');
 const { getBusyDates } = require('./google-calendar');
+const auth = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,14 +33,33 @@ function notify(event, booking, extra = {}) {
   }).catch(e => console.error(`[notify] ${event} failed:`, e.message));
 }
 
-// ── Admin auth ────────────────────────────────────────────────────────────────
-// TODO (#10): swap this bearer-token check for Authentik OIDC session validation
-// when issue #10 lands. The middleware signature stays the same; only the check changes.
+// ── Auth (issue #10) ──────────────────────────────────────────────────────────
+// Admin access is granted by either:
+//   1. an Authentik OIDC session whose user is in the admin group (see auth.js), or
+//   2. the legacy ADMIN_SECRET bearer token — kept for n8n workflows and tests.
+app.use(auth.router);
+
 function requireAdmin(req, res, next) {
+  const session = auth.getSession(req);
+  if (session && session.admin) {
+    req.session = session;
+    return next();
+  }
   const secret = process.env.ADMIN_SECRET;
-  if (!secret) return res.status(503).json({ error: 'Admin access not configured (set ADMIN_SECRET)' });
-  const auth = req.headers.authorization || '';
-  if (auth !== `Bearer ${secret}`) return res.status(401).json({ error: 'Unauthorized' });
+  const header = req.headers.authorization || '';
+  if (secret && header === `Bearer ${secret}`) return next();
+  if (session) return res.status(403).json({ error: 'Admin access required' });
+  if (!secret && !auth.configured()) {
+    return res.status(503).json({ error: 'Admin access not configured (set ADMIN_SECRET or OIDC_* vars)' });
+  }
+  return res.status(401).json({ error: 'Unauthorized' });
+}
+
+// Any signed-in user (client portal)
+function requireUser(req, res, next) {
+  const session = auth.getSession(req);
+  if (!session) return res.status(401).json({ error: 'Sign in required' });
+  req.session = session;
   next();
 }
 
@@ -106,6 +126,11 @@ app.post('/api/bookings', (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
+  // If the client is signed in, bind the booking to their OIDC identity so it
+  // shows up in the /my-bookings portal regardless of what email they typed.
+  const session = auth.getSession(req);
+  const sub = session ? session.sub : client_sub;
+
   const ps = payment_status || 'pending';
   // Record when the client indicated they sent payment
   const paymentNotifiedAt = ps === 'pending_confirmation' ? new Date().toISOString() : null;
@@ -116,7 +141,7 @@ app.post('/api/bookings', (req, res) => {
        session_length, location, payment_status, payment_notified_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
-    client_name, client_email, client_phone, client_sub,
+    client_name, client_email, client_phone, sub,
     session_date, session_type, session_length, location,
     ps, paymentNotifiedAt,
   );
@@ -210,7 +235,40 @@ app.post('/api/bookings/:id/sign', async (req, res) => {
   res.json({ ok: true, signed_at: now, pdf_path: pdfPath });
 });
 
-// ── Admin routes (require ADMIN_SECRET bearer token) ──────────────────────────
+// ── Client portal (issue #13) ─────────────────────────────────────────────────
+
+// Bookings belonging to the signed-in client, matched by OIDC subject or email.
+app.get('/api/my-bookings', requireUser, (req, res) => {
+  const { sub, email } = req.session;
+  const bookings = db.prepare(`
+    SELECT id, created_at, session_date, session_type, session_length, location,
+           contract_signed_at, payment_status, status
+    FROM bookings
+    WHERE (client_sub = ? AND client_sub IS NOT NULL)
+       OR (client_email = ? AND client_email IS NOT NULL)
+    ORDER BY session_date DESC
+  `).all(sub, email || '');
+  res.json(bookings);
+});
+
+// Signed contract download for the booking's owner (admin route also exists)
+app.get('/api/my-bookings/:id/contract', requireUser, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
+  if (!booking) return res.status(404).json({ error: 'Not found' });
+  const { sub, email } = req.session;
+  const owns = (booking.client_sub && booking.client_sub === sub) ||
+               (booking.client_email && email && booking.client_email === email);
+  if (!owns) return res.status(403).json({ error: 'Not your booking' });
+  if (!booking.contract_pdf_path) return res.status(404).json({ error: 'No signed contract' });
+  const pdfPath = path.join(__dirname, booking.contract_pdf_path);
+  if (!fs.existsSync(pdfPath)) return res.status(404).json({ error: 'Contract file missing on disk' });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="contract-booking-${id}.pdf"`);
+  res.sendFile(pdfPath);
+});
+
+// ── Admin routes (OIDC admin session or ADMIN_SECRET bearer token) ────────────
 
 // Stats: counts + next upcoming bookings for the Overview panel
 app.get('/api/admin/stats', requireAdmin, (req, res) => {

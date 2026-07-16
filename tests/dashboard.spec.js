@@ -13,14 +13,14 @@ test.describe('Admin dashboard — auth', () => {
   test('wrong passphrase shows error message', async ({ page }) => {
     await page.goto('/dashboard');
     await page.locator('#login-input').fill('wrongpassphrase');
-    await page.locator('button:has-text("Sign In")').click();
+    await page.locator('[id=login-btn]').click();
     await expect(page.locator('#login-error')).toBeVisible({ timeout: 6_000 });
   });
 
   test('correct passphrase shows the app', async ({ page }) => {
     await page.goto('/dashboard');
     await page.locator('#login-input').fill(ADMIN_SECRET);
-    await page.locator('button:has-text("Sign In")').click();
+    await page.locator('[id=login-btn]').click();
     await expect(page.locator('#app')).toBeVisible({ timeout: 8_000 });
     await expect(page.locator('#login-screen')).not.toBeVisible();
   });
@@ -35,7 +35,7 @@ test.describe('Admin dashboard — auth', () => {
   test('Sign Out returns to login screen', async ({ page }) => {
     await page.goto('/dashboard');
     await page.locator('#login-input').fill(ADMIN_SECRET);
-    await page.locator('button:has-text("Sign In")').click();
+    await page.locator('[id=login-btn]').click();
     await expect(page.locator('#app')).toBeVisible({ timeout: 8_000 });
     await page.locator('button:has-text("Sign Out")').click();
     await expect(page.locator('#login-screen')).toBeVisible();
@@ -46,7 +46,7 @@ test.describe('Admin dashboard — panels', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/dashboard');
     await page.locator('#login-input').fill(ADMIN_SECRET);
-    await page.locator('button:has-text("Sign In")').click();
+    await page.locator('[id=login-btn]').click();
     await expect(page.locator('#app')).toBeVisible({ timeout: 8_000 });
   });
 

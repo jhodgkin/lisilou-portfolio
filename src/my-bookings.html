@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Bookings — Lisi Lou Photography</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Nunito+Sans:opsz,wght@6..12,300;6..12,400;6..12,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #B06A7A;
+      --accent: #E8C4CC;
+      --text: #2C2C2C;
+      --text-muted: #6B6B6B;
+      --bg: #FEF9FA;
+      --border: #F0DCE1;
+      --green: #4C8A5C;
+      --amber: #B08430;
+      --red: #B04A4A;
+      --font-display: 'Cormorant Garamond', serif;
+      --font-body: 'Nunito Sans', sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-body); background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.25rem clamp(1rem, 5vw, 3rem);
+      border-bottom: 1px solid var(--border); background: #fff;
+    }
+    .brand { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; color: var(--primary); text-decoration: none; letter-spacing: .02em; }
+    .header-actions { display: flex; align-items: center; gap: 1rem; font-size: .85rem; }
+    .header-actions .who { color: var(--text-muted); }
+
+    main { max-width: 760px; margin: 0 auto; padding: clamp(1.5rem, 5vw, 3rem) 1rem 4rem; }
+    h1 { font-family: var(--font-display); font-weight: 300; font-size: clamp(1.8rem, 4vw, 2.4rem); margin-bottom: .35rem; }
+    .sub { color: var(--text-muted); font-size: .95rem; margin-bottom: 2rem; }
+
+    .card {
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.5rem; margin-bottom: 1rem;
+      box-shadow: 0 2px 12px rgba(176,106,122,.06);
+    }
+    .booking-row { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .booking-main .date { font-family: var(--font-display); font-size: 1.35rem; font-weight: 500; }
+    .booking-main .meta { color: var(--text-muted); font-size: .88rem; margin-top: .15rem; }
+    .booking-side { display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; }
+
+    .badge {
+      display: inline-block; padding: .2rem .6rem; border-radius: 99px;
+      font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    }
+    .badge.confirmed { background: #E7F2EA; color: var(--green); }
+    .badge.pending { background: #FBF3E2; color: var(--amber); }
+    .badge.pending_confirmation { background: #FBF3E2; color: var(--amber); }
+    .badge.cancelled, .badge.refunded { background: #F9E8E8; color: var(--red); }
+
+    .link { color: var(--primary); font-size: .85rem; text-decoration: none; border-bottom: 1px solid var(--accent); padding-bottom: 1px; }
+    .link:hover { border-color: var(--primary); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+      font-family: var(--font-body); font-size: .9rem; font-weight: 600;
+      padding: .7rem 1.6rem; border-radius: 99px; cursor: pointer; text-decoration: none;
+      border: 1px solid var(--primary); transition: all .2s ease;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: #9a5a69; }
+    .btn-outline { background: transparent; color: var(--primary); }
+    .btn-outline:hover { background: var(--accent); }
+    .btn-sm { padding: .35rem .9rem; font-size: .8rem; }
+
+    .empty, .signin {
+      text-align: center; padding: 3.5rem 1.5rem;
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    }
+    .empty p, .signin p { color: var(--text-muted); margin-bottom: 1.5rem; }
+    .signin h2, .empty h2 { font-family: var(--font-display); font-weight: 400; margin-bottom: .5rem; }
+    .signin .hint { font-size: .8rem; margin-top: 1.25rem; margin-bottom: 0; }
+
+    footer { text-align: center; padding: 2rem; color: var(--text-muted); font-size: .8rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="brand" href="/">Lisi Lou Photography</a>
+  <div class="header-actions" id="header-actions"></div>
+</header>
+
+<main>
+  <h1>My Bookings</h1>
+  <p class="sub">Your sessions with Lisi Lou Photography</p>
+  <div id="content"><div class="signin"><p>Loading…</p></div></div>
+</main>
+
+<footer>Questions about a booking? <a class="link" id="contact-link" href="mailto:hello@lisilou.com">Get in touch</a></footer>
+
+<script>
+const LENGTH_LABELS = { mini: 'Mini Session', full: 'Full Session' };
+let siteConfig = {};
+
+(async function init() {
+  try {
+    siteConfig = await (await fetch('/config/site.json')).json();
+    applyTheme(siteConfig.theme || {});
+    const email = siteConfig.contact && siteConfig.contact.email;
+    if (email) document.getElementById('contact-link').href = 'mailto:' + email;
+  } catch (e) { /* defaults are fine */ }
+
+  let me = { authenticated: false, ssoConfigured: false };
+  try { me = await (await fetch('/api/auth/me')).json(); } catch (e) { /* API down */ }
+
+  if (!me.authenticated) return renderSignin(me.ssoConfigured);
+
+  document.getElementById('header-actions').innerHTML =
+    '<span class="who">' + esc(me.name || me.email || '') + '</span>' +
+    '<button class="btn btn-outline btn-sm" onclick="signOut()">Sign out</button>';
+
+  try {
+    const r = await fetch('/api/my-bookings');
+    if (!r.ok) throw new Error(r.status);
+    renderBookings(await r.json());
+  } catch (e) {
+    document.getElementById('content').innerHTML =
+      '<div class="empty"><h2>Something went wrong</h2><p>We couldn\'t load your bookings. Please try again shortly.</p></div>';
+  }
+})();
+
+function applyTheme(t) {
+  const r = document.documentElement.style;
+  if (t.primaryColor) r.setProperty('--primary', t.primaryColor);
+  if (t.accentColor) r.setProperty('--accent', t.accentColor);
+  if (t.backgroundColor) r.setProperty('--bg', t.backgroundColor);
+  if (t.textColor) r.setProperty('--text', t.textColor);
+}
+
+function renderSignin(ssoConfigured) {
+  document.getElementById('content').innerHTML = ssoConfigured
+    ? '<div class="signin"><h2>Sign in to view your bookings</h2>' +
+      '<p>Use the account you created when booking your session.</p>' +
+      '<a class="btn btn-primary" href="/api/auth/login?redirect=%2Fmy-bookings">Sign In</a>' +
+      '<p class="hint">First time here? Signing in will let you create an account.</p></div>'
+    : '<div class="signin"><h2>Client sign-in isn\'t available yet</h2>' +
+      '<p>Please <a class="link" href="/#contact">contact us</a> about your booking.</p></div>';
+}
+
+function renderBookings(bookings) {
+  if (!bookings.length) {
+    document.getElementById('content').innerHTML =
+      '<div class="empty"><h2>No sessions yet</h2><p>When you book a session it will show up here.</p>' +
+      '<a class="btn btn-primary" href="/#book">Book a Session</a></div>';
+    return;
+  }
+  const typeLabel = id => {
+    const t = (siteConfig.booking && siteConfig.booking.sessionTypes || []).find(t => t.id === id);
+    return t ? t.label : (id || 'Session');
+  };
+  const locLabel = id => {
+    const l = (siteConfig.locations || []).find(l => l.id === id);
+    return l ? l.name : (id || '');
+  };
+  const fmtDate = d => {
+    if (!d) return 'Date TBD';
+    const dt = new Date(d + 'T12:00:00');
+    return isNaN(dt) ? d : dt.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  };
+  const payLabel = { pending: 'Payment pending', pending_confirmation: 'Payment sent', confirmed: 'Paid', refunded: 'Refunded' };
+
+  document.getElementById('content').innerHTML = bookings.map(b => {
+    const badgeClass = b.status === 'cancelled' ? 'cancelled' : (b.payment_status || 'pending');
+    const badgeText = b.status === 'cancelled' ? 'Cancelled' : (payLabel[b.payment_status] || b.payment_status);
+    const contract = b.contract_signed_at
+      ? '<a class="link" href="/api/my-bookings/' + b.id + '/contract">Download signed contract</a>'
+      : '<span class="link" style="border:none;color:var(--text-muted);">Contract not signed yet</span>';
+    return '<div class="card"><div class="booking-row">' +
+      '<div class="booking-main">' +
+        '<div class="date">' + esc(fmtDate(b.session_date)) + '</div>' +
+        '<div class="meta">' + esc(typeLabel(b.session_type)) + ' · ' + esc(LENGTH_LABELS[b.session_length] || b.session_length || '') +
+          (b.location ? ' · ' + esc(locLabel(b.location)) : '') + '</div>' +
+      '</div>' +
+      '<div class="booking-side"><span class="badge ' + badgeClass + '">' + esc(badgeText) + '</span>' + contract + '</div>' +
+    '</div></div>';
+  }).join('') +
+  '<div style="text-align:center;margin-top:2rem;"><a class="btn btn-outline" href="/#book">Book Another Session</a></div>';
+}
+
+async function signOut() {
+  try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+  window.location.reload();
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+</script>
+</body>
+</html>

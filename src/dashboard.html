@@ -47,6 +47,12 @@ body { font-family: 'Nunito Sans', sans-serif; color: var(--text); background: v
 }
 .login-card input:focus { border-color: var(--primary); }
 .login-error { color: var(--red); font-size: .8rem; margin-bottom: .75rem; display: none; }
+.login-divider {
+  display: flex; align-items: center; gap: .75rem;
+  color: var(--text-muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .1em;
+  margin-bottom: .75rem;
+}
+.login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
 /* ── App shell ─────────────────────────────────────── */
 #app { display: none; flex-direction: column; min-height: 100vh; }
@@ -230,8 +236,10 @@ tr.expanded td { background: var(--bg); }
     <h1>LisiLou</h1>
     <p>Admin Dashboard</p>
     <p class="login-error" id="login-error">Incorrect passphrase.</p>
+    <button class="btn btn-primary" id="sso-btn" style="width:100%;justify-content:center;display:none;margin-bottom:.75rem;" onclick="ssoLogin()">Sign in with SSO</button>
+    <div class="login-divider" id="login-divider" style="display:none;">or</div>
     <input type="password" id="login-input" placeholder="Admin passphrase" autocomplete="current-password">
-    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In</button>
+    <button class="btn btn-outline" id="login-btn" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In with Passphrase</button>
   </div>
 </div>
 
@@ -340,6 +348,7 @@ tr.expanded td { background: var(--bg); }
 <script>
 // ── Config & state ────────────────────────────────────────────────────────────
 let TOKEN = sessionStorage.getItem('admin_token') || '';
+let SSO_SESSION = false;
 let siteConfig = {};
 let allBookings = [];
 let calYear = new Date().getFullYear();
@@ -364,11 +373,30 @@ function fullPrice() { return siteConfig?.booking?.pricing?.full || FULL_PRICE_D
     document.getElementById('p-full').textContent = fullPrice();
   } catch(e) { /* non-fatal */ }
 
+  // Prefer an SSO session (issue #10); fall back to the stored passphrase token.
+  try {
+    const me = await (await fetch('/api/auth/me')).json();
+    if (me.authenticated && me.admin) { SSO_SESSION = true; showApp(); return; }
+    if (me.ssoConfigured) {
+      document.getElementById('sso-btn').style.display = 'flex';
+      document.getElementById('login-divider').style.display = 'flex';
+      if (me.authenticated && !me.admin) {
+        const err = document.getElementById('login-error');
+        err.textContent = 'Your account does not have admin access.';
+        err.style.display = 'block';
+      }
+    }
+  } catch(e) { /* API down — passphrase input still shown */ }
+
   if (TOKEN) {
     const ok = await verifyToken();
     if (ok) showApp();
   }
 })();
+
+function ssoLogin() {
+  window.location.href = '/api/auth/login?redirect=' + encodeURIComponent('/dashboard');
+}
 
 function applyTheme(t) {
   const r = document.documentElement.style;
@@ -410,6 +438,10 @@ async function verifyToken() {
 }
 
 function doLogout() {
+  if (SSO_SESSION) {
+    SSO_SESSION = false;
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+  }
   TOKEN = '';
   sessionStorage.removeItem('admin_token');
   document.getElementById('app').style.display = 'none';
@@ -425,10 +457,8 @@ function showApp() {
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 async function api(method, url, body) {
-  const opts = {
-    method,
-    headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
-  };
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (TOKEN) opts.headers['Authorization'] = 'Bearer ' + TOKEN;
   if (body) opts.body = JSON.stringify(body);
   const r = await fetch(url, opts);
   if (r.status === 401) { doLogout(); throw new Error('Unauthorized'); }
@@ -823,7 +853,7 @@ async function confirmPaymentP(id, btn) {
 
 async function exportCSV() {
   const r = await fetch('/api/admin/payments/export', {
-    headers: { 'Authorization': 'Bearer ' + TOKEN }
+    headers: TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}
   });
   if (!r.ok) { alert('Export failed'); return; }
   const blob = await r.blob();
