@@ -17,11 +17,16 @@ jobs:
       - name: Pull latest changes
         run: |
           cd /opt/lisilou-portfolio
-          git pull origin main
-      
+          git fetch origin main
+          git reset --hard origin/main
+
       - name: Build and restart containers
         run: |
           cd /opt/lisilou-portfolio
+          # First-run prerequisites for the two-service stack:
+          # compose requires api/.env to exist and the external "web" network
+          if [ ! -f api/.env ]; then cp api/.env.example api/.env; fi
+          docker network inspect web >/dev/null 2>&1 || docker network create web
           docker compose build
           docker compose up -d
           docker compose ps
@@ -32,5 +37,12 @@ jobs:
       
       - name: Verify deployment
         run: |
-          sleep 5
-          curl -f http://localhost:8080/health || echo "Health check failed"
+          for i in $(seq 1 24); do
+            if curl -sf http://localhost:8080/health >/dev/null; then
+              echo "Healthy after $((i*5))s"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Health check failed after 120s"
+          exit 1
