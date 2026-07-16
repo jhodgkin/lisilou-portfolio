@@ -198,6 +198,19 @@
       opacity: 0.5;
     }
 
+    /* Optional hero photo (config: site.heroImage) with a soft scrim for text legibility */
+    .hero-bg.hero-bg--image {
+      background-size: cover;
+      background-position: center;
+      opacity: 1;
+    }
+    .hero-bg.hero-bg--image::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.72) 100%);
+    }
+
     .hero-pattern {
       position: absolute;
       inset: 0;
@@ -411,6 +424,25 @@
       font-size: 0.85rem;
       color: rgba(255, 255, 255, 0.8);
       letter-spacing: 0.1em;
+    }
+
+    /* Styled stand-in when a category cover image is missing (same idea as location cards) */
+    .portfolio-card-fallback {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--color-bg-warm) 0%, var(--color-accent) 100%);
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 1.3rem;
+      color: var(--color-primary);
+    }
+
+    /* Touch devices have no hover — keep category titles visible */
+    @media (hover: none) {
+      .portfolio-card-overlay { opacity: 1; }
     }
 
     /* Client Access Section */
@@ -867,6 +899,10 @@
       text-align: center;
       transition: all 0.3s var(--transition-smooth);
       user-select: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 6.5rem;
     }
 
     .option-card:hover { border-color: var(--color-primary); }
@@ -1402,7 +1438,7 @@
 
   <!-- Hero Section -->
   <section class="hero">
-    <div class="hero-bg"></div>
+    <div class="hero-bg" id="hero-bg"></div>
     <div class="hero-pattern"></div>
     <div class="hero-content">
       <p class="hero-eyebrow" id="hero-eyebrow">Photography</p>
@@ -1699,6 +1735,14 @@
       return [];
     }
 
+    // Swap a missing category cover for a styled placeholder (keeps the card elegant)
+    function portfolioCoverFallback(img) {
+      const fallback = document.createElement('div');
+      fallback.className = 'portfolio-card-fallback';
+      fallback.textContent = img.alt || 'Coming soon';
+      img.replaceWith(fallback);
+    }
+
     // Start carousel for a portfolio card
     function startCarousel(cardElement, images) {
       if (images.length <= 1) return;
@@ -1729,8 +1773,9 @@
     }
 
     async function applyConfig(config) {
-      // Store immich config globally first (needed for thumbnail fetching)
+      // Store config globally: immich for thumbnails, siteConfig for the booking form
       window.immichConfig = config.immich || {};
+      window.siteConfig = config;
 
       // Apply theme colors
       if (config.theme) {
@@ -1752,6 +1797,16 @@
         if (config.site.tagline) {
           document.getElementById('hero-tagline').textContent = config.site.tagline;
         }
+        if (config.site.heroImage) {
+          // Only activate the photo treatment once the image actually loads
+          const probe = new Image();
+          probe.onload = () => {
+            const heroBg = document.getElementById('hero-bg');
+            heroBg.style.backgroundImage = `url('${config.site.heroImage}')`;
+            heroBg.classList.add('hero-bg--image');
+          };
+          probe.src = config.site.heroImage;
+        }
       }
 
       // Apply portfolio categories
@@ -1763,7 +1818,7 @@
         // First render the cards with placeholder/fallback images
         grid.innerHTML = config.portfolio.categories.map(cat => `
           <div class="portfolio-card reveal" data-album-id="${cat.immichAlbumId || ''}" onclick="openPortfolio('${cat.id}', '${cat.immichAlbumId || ''}')">
-            <img src="${cat.coverImage || '/images/placeholder.jpg'}" alt="${cat.name}" loading="lazy">
+            <img src="${cat.coverImage || '/images/placeholder.jpg'}" alt="${cat.name}" loading="lazy" onerror="portfolioCoverFallback(this)">
             <div class="portfolio-card-overlay">
               <h3 class="portfolio-card-title">${cat.name}</h3>
               <p class="portfolio-card-desc">${cat.description || ''}</p>
@@ -1778,7 +1833,15 @@
             const images = await getImmichAlbumImages(baseUrl, prefix, cat.immichAlbumId);
             if (images.length > 0) {
               const card = grid.children[index];
-              const img = card.querySelector('img');
+              let img = card.querySelector('img');
+
+              // The cover may have been swapped for the styled fallback — restore an <img>
+              if (!img) {
+                const fallback = card.querySelector('.portfolio-card-fallback');
+                img = document.createElement('img');
+                img.alt = cat.name;
+                if (fallback) fallback.replaceWith(img); else card.prepend(img);
+              }
 
               // Set the first image
               img.src = images[0];
@@ -1889,12 +1952,7 @@
       reveals.forEach(el => observer.observe(el));
     }
 
-    // Store config globally for the booking form to use
-    const _origApply = applyConfig;
-    async function applyConfig(config) {
-      window.siteConfig = config;
-      return _origApply(config);
-    }
+    // (window.siteConfig is set at the top of applyConfig for the booking form)
 
     // ── Date Picker ───────────────────────────────────────
 
@@ -2612,6 +2670,10 @@ A complete service agreement and model release will be provided at your session 
       if (window.location.hash === '#book') {
         setTimeout(openBooking, 400);
       }
+    });
+
+    window.addEventListener('hashchange', function() {
+      if (window.location.hash === '#book') openBooking();
     });
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous"></script>

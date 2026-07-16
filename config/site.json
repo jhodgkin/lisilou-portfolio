@@ -4,7 +4,8 @@
     "tagline": "Capturing life's beautiful moments",
     "description": "Senior portraits, engagement sessions, and milestone photography",
     "logo": "/images/logo.png",
-    "favicon": "/images/favicon.ico"
+    "favicon": "/images/favicon.ico",
+    "heroImage": "/images/hero.jpg"
   },
   "photographer": {
     "name": "Elysse Hodgkin",

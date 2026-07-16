@@ -45,19 +45,17 @@ test.describe('Portfolio site', () => {
     expect(json.ok).toBe(true);
   });
 
-  test('pink theme is applied (primary color is rose/pink)', async ({ page }) => {
+  test('configured theme is applied (primary color matches site.json)', async ({ page, request }) => {
+    const config = await (await request.get('/config/site.json')).json();
+    const expected = (config.theme?.primaryColor || '').toLowerCase();
+    expect(expected).toMatch(/^#[a-f0-9]{6}$/);
+
     await page.goto('/');
-    const primary = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim()
+    // Config is fetched on window load; wait until the var flips from the CSS default
+    await page.waitForFunction(
+      exp => getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim().toLowerCase() === exp,
+      expected,
+      { timeout: 8_000 }
     );
-    // Should be a pink/rose hex — starts with #B or #b (our dusty rose #B06A7A)
-    expect(primary.toLowerCase()).toMatch(/^#[a-f0-9]{6}$/i);
-    // Hue should be in the red-pink range: R > G and R > B
-    const hex = primary.replace('#', '');
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    expect(r).toBeGreaterThan(g);
-    expect(r).toBeGreaterThan(b);
   });
 });
