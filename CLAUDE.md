@@ -8,7 +8,9 @@ LisiLou Photography Portfolio — a photography booking and portfolio site for E
 Built as a zero-framework SPA with a Node.js/Express booking API, deployed on a homelab Proxmox cluster.
 
 **Live dev URL:** http://192.168.1.192:8080 (CT114, lisilou-dev LXC)
-**Gitea repo:** https://git.jerodrigged.com/jhodgkin/lisilou-portfolio
+**Production URL:** https://lisilou.jerodrigged.com (CT111 via Cloudflare tunnel → NPM CT102)
+**Gitea repo:** https://git.jerodrigged.com/jhodgkin/lisilou-portfolio (deploys dev, CT114)
+**GitHub mirror:** https://github.com/jhodgkin/lisilou-portfolio (deploys prod, CT111 — push here too or prod drifts!)
 
 ## Technology Stack
 
@@ -18,7 +20,7 @@ Built as a zero-framework SPA with a Node.js/Express booking API, deployed on a 
 | Portfolio server | Nginx Alpine |
 | Booking API | Node.js 20 / Express / better-sqlite3 |
 | Deployment | Docker Compose (two services: `portfolio` + `api`) |
-| CI/CD | Gitea Actions → auto-deploys to CT114 on push to `main` |
+| CI/CD | Gitea Actions → CT114 (dev); GitHub Actions → CT111 (prod) on push to `main` |
 | Image hosting | Immich (immich.jerodrigged.com) |
 
 ## Development Commands
@@ -67,7 +69,7 @@ All content is loaded at runtime — no rebuild needed:
 
 ```
 site.json
-├── site         — title, tagline, logo, favicon
+├── site         — title, tagline, logo, favicon, heroImage (optional hero photo)
 ├── photographer — name, bio, profile image
 ├── contact      — email, phone
 ├── social       — instagram, facebook, etc.
@@ -157,13 +159,18 @@ Every push to `main`:
 
 | Step | Feature | Issue | Status |
 |------|---------|-------|--------|
-| 1 | Date picker | #3 | Shell done; Google Calendar availability pending |
+| 1 | Date picker | #3 | Done — Google Calendar busy dates (graceful when unconfigured) |
 | 2 | Session type | #4 | Done — config-driven from `sessionTypes[]` |
 | 3 | Session length | #4 | Done — mini/full with pricing from config |
 | 4 | Location picker | #5 | Done — photo cards with detail expand panel |
-| 5 | Contract e-signature | #6 | Shell placeholder; PDF.js + pdf-lib pending |
-| 6 | Venmo payment | #7 | Shell placeholder; deep link + QR pending |
+| 5 | Contract e-signature | #6 | Done — PDF.js viewer + canvas pad; needs `api/contracts/model-release.pdf` on volume |
+| 6 | Venmo payment | #7 | Done — deep link + server-generated QR |
 | 7 | Confirm & submit | — | Done — summary + POST /api/bookings |
+
+Also done: n8n webhooks (#8), admin dashboard at `/dashboard` (#11), Authentik OIDC
+login (#10, needs Authentik-side setup), client portal at `/my-bookings` (#13).
+Auth lives in `api/auth.js` (zero-dep OIDC + HMAC cookie sessions); admin routes
+accept an OIDC admin session or the legacy `ADMIN_SECRET` bearer.
 
 ### Booking JS Functions (in `src/index.html`)
 
@@ -181,17 +188,10 @@ Every push to `main`:
 | `populateSummary()` | Fills step 7 confirm rows from bookingState + config labels |
 | `submitBooking()` | POST /api/bookings; shows success state |
 
-## Pending Issues
+## Pending Work
 
-| # | Feature |
-|---|---------|
-| #3 | Google Calendar availability (real date picker with blocked dates) |
-| #6 | Contract e-signature (PDF.js viewer + HTML5 canvas signature pad) |
-| #7 | Venmo payment step (deep link + QR code) |
-| #8 | n8n email notifications on new booking |
-| #10 | Authentik OIDC (photographer admin + client self-registration) |
-| #11 | Management dashboard with payment status |
-| #12 | Authentik client self-registration enrollment flow |
-| #13 | Client portal /my-bookings |
+All original wizard issues (#3–#13) are code-complete. Remaining items — mostly
+infrastructure setup, secrets, and content — are catalogued in
+`docs/BACKLOG-2026-07-16.md` and should be transferred to Gitea issues.
 
 Issues are tracked at: https://git.jerodrigged.com/jhodgkin/homelab/issues
